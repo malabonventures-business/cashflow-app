@@ -70,11 +70,12 @@ async function applyRoleUI(role) {
     navRebalance.style.display = "inline-block";
     clearBtn.style.display = "block";
 
+        // Check if starting balance exists
     const docSnap = await balancesRef.get();
     if(!docSnap.exists || !docSnap.data().initialized) {
       // Auto-fill default starting balance 736.12
-      document.getElementById("startCash").value = 736.12;
-      document.getElementById("startGCash").value = 0;
+      document.getElementById("startCash").value = 5320;
+      document.getElementById("startGCash").value = 736.12;
       startingModal.style.display = "flex";
     }
   }
