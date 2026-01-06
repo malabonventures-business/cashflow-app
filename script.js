@@ -89,6 +89,58 @@ transactionForm.addEventListener("submit", (e) => {
   transactionForm.reset();
 });
 
+
+
+        // Rebalance form
+const rebalanceForm = document.getElementById("rebalanceForm");
+
+rebalanceForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+
+  const from = document.getElementById("rebalanceFrom").value;
+  const to = document.getElementById("rebalanceTo").value;
+  const amount = parseFloat(document.getElementById("rebalanceAmount").value);
+  const notes = document.getElementById("rebalanceNotes").value;
+
+  if (from === to) {
+    alert("Cannot transfer to the same account.");
+    return;
+  }
+
+  // Check sufficient balance
+  if (balances[from] < amount) {
+    alert(`Insufficient balance in ${from}`);
+    return;
+  }
+
+  balances[from] -= amount;
+  balances[to] += amount;
+
+  // Add a transaction record for tracking (fee = 0, profit = 0)
+  const transaction = {
+    date: new Date().toLocaleString(),
+    type: "rebalance",
+    amount,
+    method: `${from}→${to}`,
+    fee: 0,
+    profit: 0,
+    notes: notes || "Rebalance"
+  };
+
+  transactions.push(transaction);
+
+  // Save and update
+  localStorage.setItem("transactions", JSON.stringify(transactions));
+  localStorage.setItem("balances", JSON.stringify(balances));
+
+  updateSummary();
+  renderTable();
+
+  rebalanceForm.reset();
+});
+
+
+  
 // Initial render
 updateSummary();
 renderTable();
