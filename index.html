@@ -3,169 +3,154 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Business Dashboard</title>
+  <title>Cashflow System</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="container">
-    <h1>💼 Business Dashboard</h1>
 
-    <!-- Navigation Tabs -->
-    <div class="tabs">
-      <button class="tablink active" onclick="openTab('dashboard')">Dashboard</button>
-      <button class="tablink" onclick="openTab('cashflow')">Cash-in / Cash-out</button>
-      <button class="tablink" onclick="openTab('rebalance')">Rebalance</button>
+    <!-- LOGIN SECTION -->
+    <div id="loginSection">
+      <h1>Login</h1>
+      <form id="loginForm">
+        <label>Email:
+          <input type="email" id="loginEmail" required>
+        </label>
+        <label>Password:
+          <input type="password" id="loginPassword" required>
+        </label>
+        <button type="submit">Login</button>
+      </form>
     </div>
 
-    <!-- Dashboard Tab -->
-    <div id="dashboard" class="tabcontent">
-      <div class="cards">
-        <div class="card">
-          <h3>Cash-on-hand</h3>
-          <p id="dashCash">₱0</p>
-        </div>
-        <div class="card">
-          <h3>GCash Balance</h3>
-          <p id="dashGcash">₱0</p>
-        </div>
-        <div class="card">
-          <h3>Total Profit</h3>
-          <p id="dashProfit">₱0</p>
-        </div>
-      </div>
-      <div class="cards">
-        <div class="card">
-          <h4>Daily Total</h4>
-          <p id="dailyTotal">₱0</p>
-        </div>
-        <div class="card">
-          <h4>Weekly Total</h4>
-          <p id="weeklyTotal">₱0</p>
-        </div>
-        <div class="card">
-          <h4>Monthly Total</h4>
-          <p id="monthlyTotal">₱0</p>
-        </div>
-        <div class="card">
-          <h4>Yearly Total</h4>
-          <p id="yearlyTotal">₱0</p>
-        </div>
-      </div>
-    </div>
+    <!-- MAIN APP SECTION -->
+    <div id="appSection" style="display:none;">
 
-    <!-- Cashflow Tab -->
-    <div id="cashflow" class="tabcontent">
-      <div class="form-container">
-        <h2>Add Cash-in / Cash-out</h2>
-        <form id="transactionForm">
-          <label>Type:
-            <select id="type" required>
-              <option value="cashin">Cash-in</option>
-              <option value="cashout">Cash-out</option>
-            </select>
-          </label>
+      <h1>💼 Cashflow System</h1>
 
-          <label>Amount:
-            <input type="number" id="amount" required min="1" placeholder="₱0">
-          </label>
-
-          <label>Payment Method:
-            <select id="method" required>
-              <option value="cash">Cash</option>
-              <option value="gcash">GCash</option>
-            </select>
-          </label>
-
-          <label>Fee (auto-tiered or manual):
-            <input type="number" id="fee" placeholder="Auto" min="0">
-          </label>
-
-          <label>Notes:
-            <input type="text" id="notes" placeholder="Optional">
-          </label>
-
-          <button type="submit">Add Transaction</button>
-        </form>
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tablink active" onclick="openTab('dashboard')">Dashboard</button>
+        <button class="tablink" onclick="openTab('cashflow')">Cash-in / Cash-out</button>
+        <button class="tablink" onclick="openTab('rebalance')">Rebalance</button>
       </div>
 
-      <div class="table-container">
-        <h2>Transaction History</h2>
-        <table id="transactionTable">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Type</th>
-              <th>Amount</th>
-              <th>Method</th>
-              <th>Fee</th>
-              <th>Profit</th>
-              <th>Notes</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
+      <!-- DASHBOARD -->
+      <div id="dashboard" class="tabcontent">
+        <div class="cards">
+          <div class="card">
+            <h3>Cash-on-hand</h3>
+            <p id="dashCash">₱0</p>
+          </div>
+          <div class="card">
+            <h3>GCash Balance</h3>
+            <p id="dashGcash">₱0</p>
+          </div>
+          <div class="card">
+            <h3>Total Profit</h3>
+            <p id="dashProfit">₱0</p>
+          </div>
+        </div>
+        <div class="cards">
+          <div class="card"><h4>Daily Total</h4><p id="dailyTotal">₱0</p></div>
+          <div class="card"><h4>Weekly Total</h4><p id="weeklyTotal">₱0</p></div>
+          <div class="card"><h4>Monthly Total</h4><p id="monthlyTotal">₱0</p></div>
+          <div class="card"><h4>Yearly Total</h4><p id="yearlyTotal">₱0</p></div>
+        </div>
       </div>
-    </div>
 
-    <!-- Rebalance Tab -->
-    <div id="rebalance" class="tabcontent">
-      <div class="form-container">
-        <h2>Rebalance Cash / GCash</h2>
-        <form id="rebalanceForm">
-          <label>From:
-            <select id="rebalanceFrom" required>
-              <option value="cash">Cash-on-hand</option>
-              <option value="gcash">GCash</option>
-            </select>
-          </label>
+      <!-- CASHFLOW -->
+      <div id="cashflow" class="tabcontent">
+        <div class="form-container">
+          <h2>Add Cash-in / Cash-out</h2>
+          <form id="transactionForm">
+            <label>Type:
+              <select id="type" required>
+                <option value="cashin">Cash-in</option>
+                <option value="cashout">Cash-out</option>
+              </select>
+            </label>
 
-          <label>To:
-            <select id="rebalanceTo" required>
-              <option value="cash">Cash-on-hand</option>
-              <option value="gcash">GCash</option>
-            </select>
-          </label>
+            <label>Amount:
+              <input type="number" id="amount" required min="1" placeholder="₱0">
+            </label>
 
-          <label>Amount:
-            <input type="number" id="rebalanceAmount" required min="1" placeholder="₱0">
-          </label>
+            <label>Payment Method:
+              <select id="method" required>
+                <option value="cash">Cash</option>
+                <option value="gcash">GCash</option>
+              </select>
+            </label>
 
-          <label>Notes:
-            <input type="text" id="rebalanceNotes" placeholder="Optional">
-          </label>
+            <label id="feeLabel">Fee (auto or manual):
+              <input type="number" id="fee" placeholder="Auto" min="0">
+            </label>
 
-          <button type="submit">Transfer</button>
-        </form>
+            <label>Notes:
+              <input type="text" id="notes" placeholder="Optional">
+            </label>
+
+            <button type="submit">Add Transaction</button>
+          </form>
+        </div>
+
+        <div class="table-container">
+          <h2>Transaction History</h2>
+          <table id="transactionTable">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Method</th>
+                <th>Fee</th>
+                <th>Profit</th>
+                <th>Notes</th>
+                <th>By</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
       </div>
+
+      <!-- REBALANCE -->
+      <div id="rebalance" class="tabcontent">
+        <div class="form-container">
+          <h2>Rebalance Cash / GCash</h2>
+          <form id="rebalanceForm">
+            <label>From:
+              <select id="rebalanceFrom" required>
+                <option value="cash">Cash-on-hand</option>
+                <option value="gcash">GCash</option>
+              </select>
+            </label>
+
+            <label>To:
+              <select id="rebalanceTo" required>
+                <option value="cash">Cash-on-hand</option>
+                <option value="gcash">GCash</option>
+              </select>
+            </label>
+
+            <label>Amount:
+              <input type="number" id="rebalanceAmount" required min="1" placeholder="₱0">
+            </label>
+
+            <label>Notes:
+              <input type="text" id="rebalanceNotes" placeholder="Optional">
+            </label>
+
+            <button type="submit">Transfer</button>
+          </form>
+        </div>
+      </div>
+
+      <button id="clearResetBtn" style="display:none;" onclick="clearAllData()">Clear / Reset All (Owner only)</button>
+
     </div>
 
   </div>
-  <script src="script.js"></script>
-
-  <!-- Firebase App (core) SDK -->
-<script src="https://www.gstatic.com/firebasejs/10.15.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.15.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.15.0/firebase-firestore-compat.js"></script>
-
+  <script type="module" src="script.js"></script>
 </body>
 </html>
-
-
-
-                                                              <div id="loginSection">
-  <h2>Login</h2>
-  <form id="loginForm">
-    <label>Email:
-      <input type="email" id="loginEmail" required>
-    </label>
-    <label>Password:
-      <input type="password" id="loginPassword" required>
-    </label>
-    <button type="submit">Login</button>
-  </form>
-</div>
-
-<!-- Your 3-tab dashboard goes below, initially hidden -->
-<div id="appSection" style="display:none;">
-  <!-- Tabs: Dashboard, Cash-in/out, Rebalance -->
-</div>
