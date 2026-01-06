@@ -296,5 +296,5 @@ firebase.auth().onAuthStateChanged(async (user) => {
   document.getElementById("appSection").style.display = "block";
 
   // ✅ APPLY ROLE RULES
-  applyRoleUI(role);
+  await applyRoleUI(role);
 });
