@@ -1,7 +1,4 @@
-// ----------------- Firebase Setup -----------------
-
-
-// Firebase config
+// ----------------- Firebase Config -----------------
 const firebaseConfig = {
   apiKey: "AIzaSyDF5BuG7cfbLhyIWJkgzKVNmXH9KtB4_AQ",
   authDomain: "cashflowsystem-e8597.firebaseapp.com",
@@ -12,35 +9,25 @@ const firebaseConfig = {
   measurementId: "G-8NG4M1874C"
 };
 
-
-// Initialize Firebase (compat)
+// Initialize Firebase
 firebase.initializeApp(firebaseConfig);
-
-// Initialize services
 const auth = firebase.auth();
 const db = firebase.firestore();
 const analytics = firebase.analytics();
 
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
 // ----------------- Global Variables -----------------
 let currentUserRole = "";
-const balancesRef = doc(db, "balances", "main");
+const balancesRef = db.collection("balances").doc("main");
 
 // ----------------- LOGIN -----------------
 async function login(email, password){
   try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const userCredential = await auth.signInWithEmailAndPassword(email, password);
     const uid = userCredential.user.uid;
 
     // Get role from Firestore
-    const userDoc = await getDoc(doc(db, "users", uid));
-    if(userDoc.exists()){
+    const userDoc = await db.collection("users").doc(uid).get();
+    if(userDoc.exists){
       currentUserRole = userDoc.data().name; // "owner" or "cashier"
 
       if(currentUserRole === "owner") showOwnerUI();
@@ -82,14 +69,14 @@ function showStaffUI(){
 }
 
 // ----------------- TAB SWITCH -----------------
-function openTab(tabName){
+function openTab(tabName, btn){
   const tabs = document.querySelectorAll(".tabcontent");
   tabs.forEach(t=>t.style.display="none");
   document.getElementById(tabName).style.display="block";
 
   const buttons = document.querySelectorAll(".tablink");
   buttons.forEach(b=>b.classList.remove("active"));
-  event.currentTarget.classList.add("active");
+  btn.classList.add("active");
 }
 
 // ----------------- AUTO FEE CALC -----------------
@@ -99,7 +86,7 @@ function calculateFee(amount){
   if(amount < 1000) return 20;
   if(amount < 1500) return 30;
   if(amount < 2000) return 40;
-  return 20 + Math.floor((amount-1000)/1000)*20; // per thousand after 1000
+  return 20 + Math.floor((amount-1000)/1000)*20;
 }
 
 // ----------------- ADD TRANSACTION -----------------
@@ -115,7 +102,7 @@ document.getElementById("transactionForm").addEventListener("submit", async e=>{
   const profit = type==="cashin"? amount-fee : -amount;
 
   // Add transaction
-  await addDoc(collection(db, "transactions"), {
+  await db.collection("transactions").add({
     date: new Date().toISOString(),
     type, amount, method, fee, profit, notes,
     role: currentUserRole
@@ -123,11 +110,11 @@ document.getElementById("transactionForm").addEventListener("submit", async e=>{
 
   // Update balances
   if(type==="cashin"){
-    if(method==="cash") await updateDoc(balancesRef, { cash: increment(amount-fee), profit: increment(fee) });
-    else await updateDoc(balancesRef, { gcash: increment(amount-fee), profit: increment(fee) });
+    if(method==="cash") await balancesRef.update({ cash: firebase.firestore.FieldValue.increment(amount-fee), profit: firebase.firestore.FieldValue.increment(fee) });
+    else await balancesRef.update({ gcash: firebase.firestore.FieldValue.increment(amount-fee), profit: firebase.firestore.FieldValue.increment(fee) });
   } else {
-    if(method==="cash") await updateDoc(balancesRef, { cash: increment(-amount) });
-    else await updateDoc(balancesRef, { gcash: increment(-amount) });
+    if(method==="cash") await balancesRef.update({ cash: firebase.firestore.FieldValue.increment(-amount) });
+    else await balancesRef.update({ gcash: firebase.firestore.FieldValue.increment(-amount) });
   }
 
   document.getElementById("transactionForm").reset();
@@ -145,15 +132,13 @@ document.getElementById("rebalanceForm").addEventListener("submit", async e=>{
 
   if(from===to){ alert("Cannot transfer to same account!"); return; }
 
-  // Update balances
   if(from==="cash" && to==="gcash"){
-    await updateDoc(balancesRef, { cash: increment(-amount), gcash: increment(amount) });
+    await balancesRef.update({ cash: firebase.firestore.FieldValue.increment(-amount), gcash: firebase.firestore.FieldValue.increment(amount) });
   } else if(from==="gcash" && to==="cash"){
-    await updateDoc(balancesRef, { gcash: increment(-amount), cash: increment(amount) });
+    await balancesRef.update({ gcash: firebase.firestore.FieldValue.increment(-amount), cash: firebase.firestore.FieldValue.increment(amount) });
   }
 
-  // Add rebalance transaction
-  await addDoc(collection(db, "transactions"), {
+  await db.collection("transactions").add({
     date: new Date().toISOString(),
     type: "rebalance",
     amount,
@@ -171,8 +156,8 @@ document.getElementById("rebalanceForm").addEventListener("submit", async e=>{
 
 // ----------------- LOAD DASHBOARD -----------------
 async function loadDashboard(){
-  const snap = await getDoc(balancesRef);
-  if(snap.exists()){
+  const snap = await balancesRef.get();
+  if(snap.exists){
     const data = snap.data();
     document.getElementById("dashCash").innerText = `₱${data.cash || 0}`;
     document.getElementById("dashGcash").innerText = `₱${data.gcash || 0}`;
@@ -180,7 +165,7 @@ async function loadDashboard(){
   }
 
   // Compute totals
-  const txSnap = await getDocs(collection(db, "transactions"));
+  const txSnap = await db.collection("transactions").get();
   let daily=0, weekly=0, monthly=0, yearly=0;
   const now = new Date();
 
@@ -203,7 +188,7 @@ async function loadDashboard(){
 
 // ----------------- LOAD TRANSACTIONS -----------------
 async function loadTransactions(){
-  const txSnap = await getDocs(collection(db, "transactions"));
+  const txSnap = await db.collection("transactions").get();
   const tbody = document.querySelector("#transactionTable tbody");
   tbody.innerHTML = "";
 
@@ -227,9 +212,9 @@ async function loadTransactions(){
 // ----------------- CLEAR / RESET -----------------
 async function clearAllData(){
   if(confirm("Are you sure you want to clear all transactions and reset balances?")){
-    const txSnap = await getDocs(collection(db, "transactions"));
+    const txSnap = await db.collection("transactions").get();
     txSnap.forEach(doc=>doc.ref.delete());
-    await updateDoc(balancesRef, { cash:0, gcash:0, profit:0 });
+    await balancesRef.update({ cash:0, gcash:0, profit:0 });
     loadDashboard();
     loadTransactions();
     alert("All data cleared!");
