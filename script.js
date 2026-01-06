@@ -179,7 +179,7 @@ const db = firebase.firestore();
 
 
 
-                                                  // 1. Initialize Firebase
+                                                                            // 1. Initialize Firebase
 const firebaseConfig = {
   apiKey: "YOUR_API_KEY",
   authDomain: "YOUR_PROJECT.firebaseapp.com",
@@ -219,3 +219,26 @@ function login(email, password) {
       alert(error.message);
     });
 }
+
+
+                                                                          // Login form submit
+document.getElementById("loginForm").addEventListener("submit", e=>{
+  e.preventDefault();
+  const email = document.getElementById("loginEmail").value;
+  const password = document.getElementById("loginPassword").value;
+  login(email, password);
+});
+
+                                                                          // Show/hide sections after login
+function showOwnerUI(){
+  document.getElementById("loginSection").style.display = "none";
+  document.getElementById("appSection").style.display = "block";
+  // Show rebalance, clear/reset buttons
+}
+
+function showStaffUI(){
+  document.getElementById("loginSection").style.display = "none";
+  document.getElementById("appSection").style.display = "block";
+  // Hide rebalance and clear/reset buttons
+}
+
