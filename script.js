@@ -1,168 +1,10 @@
-// Elements
-const tablinks = document.querySelectorAll(".tablink");
-const tabcontents = document.querySelectorAll(".tabcontent");
+// ----------------- Firebase Setup -----------------
+import { initializeApp } from "firebase/app";
+import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
+import { getFirestore, doc, getDoc, collection, addDoc, updateDoc, increment, getDocs } from "firebase/firestore";
+import { getAnalytics } from "firebase/analytics";
 
-const dashCashEl = document.getElementById("dashCash");
-const dashGcashEl = document.getElementById("dashGcash");
-const dashProfitEl = document.getElementById("dashProfit");
-const dailyEl = document.getElementById("dailyTotal");
-const weeklyEl = document.getElementById("weeklyTotal");
-const monthlyEl = document.getElementById("monthlyTotal");
-const yearlyEl = document.getElementById("yearlyTotal");
-
-const transactionForm = document.getElementById("transactionForm");
-const transactionTableBody = document.querySelector("#transactionTable tbody");
-
-const rebalanceForm = document.getElementById("rebalanceForm");
-
-// Load data
-let transactions = JSON.parse(localStorage.getItem("transactions")) || [];
-let balances = JSON.parse(localStorage.getItem("balances")) || {cash:0, gcash:0, profit:0};
-
-// Tabs
-function openTab(tabName) {
-  tabcontents.forEach(tc => tc.classList.remove("active"));
-  tablinks.forEach(tl => tl.classList.remove("active"));
-  document.getElementById(tabName).classList.add("active");
-  document.querySelector(`.tablink[onclick="openTab('${tabName}')"]`).classList.add("active");
-}
-
-// Fee tiers
-function calculateFee(amount) {
-  if(amount <= 100) return 5;
-  if(amount <= 500) return 10;
-  if(amount <= 1000) return 20;
-  if(amount <= 1500) return 30;
-  if(amount <= 2000) return 40;
-  return Math.floor(amount/1000)*20;
-}
-
-// Update summary cards
-function updateSummary() {
-  dashCashEl.textContent = `₱${balances.cash}`;
-  dashGcashEl.textContent = `₱${balances.gcash}`;
-  dashProfitEl.textContent = `₱${balances.profit}`;
-  updateDashboardTotals();
-}
-
-// Render table
-function renderTable() {
-  transactionTableBody.innerHTML = "";
-  transactions.forEach(tx => {
-    const tr = document.createElement("tr");
-    if(tx.type === "rebalance") {
-      tr.style.backgroundColor = "#fff3cd";
-      tr.style.fontStyle = "italic";
-    }
-    tr.innerHTML = `
-      <td>${tx.date}</td>
-      <td>${tx.type}</td>
-      <td>₱${tx.amount}</td>
-      <td>${tx.method}</td>
-      <td>₱${tx.fee}</td>
-      <td>₱${tx.profit}</td>
-      <td>${tx.notes}</td>
-    `;
-    transactionTableBody.appendChild(tr);
-  });
-}
-
-// Transaction form submit
-transactionForm.addEventListener("submit", e=>{
-  e.preventDefault();
-  const type = document.getElementById("type").value;
-  const amount = parseFloat(document.getElementById("amount").value);
-  const method = document.getElementById("method").value;
-  let feeInput = document.getElementById("fee").value;
-  let fee = feeInput ? parseFloat(feeInput) : calculateFee(amount);
-  let profit = fee;
-
-  if(type==="cashin"){
-    if(method==="cash") balances.cash += amount - fee;
-    else balances.gcash += amount - fee;
-  } else if(type==="cashout"){
-    if(method==="cash") balances.cash -= amount;
-    else balances.gcash -= amount;
-  }
-
-  balances.profit += profit;
-
-  const transaction = {
-    date: new Date().toLocaleString(),
-    type,
-    amount,
-    method,
-    fee,
-    profit,
-    notes: document.getElementById("notes").value
-  };
-  transactions.push(transaction);
-  saveAndUpdate();
-  transactionForm.reset();
-});
-
-// Rebalance submit
-rebalanceForm.addEventListener("submit", e=>{
-  e.preventDefault();
-  const from = document.getElementById("rebalanceFrom").value;
-  const to = document.getElementById("rebalanceTo").value;
-  const amount = parseFloat(document.getElementById("rebalanceAmount").value);
-  const notes = document.getElementById("rebalanceNotes").value;
-
-  if(from===to){ alert("Cannot transfer to same account."); return; }
-  if(balances[from]<amount){ alert(`Insufficient balance in ${from}`); return; }
-
-  balances[from]-=amount;
-  balances[to]+=amount;
-
-  const transaction = {
-    date: new Date().toLocaleString(),
-    type:"rebalance",
-    amount,
-    method:`${from}→${to}`,
-    fee:0,
-    profit:0,
-    notes: notes || "Rebalance"
-  };
-  transactions.push(transaction);
-  saveAndUpdate();
-  rebalanceForm.reset();
-});
-
-// Save & update UI
-function saveAndUpdate(){
-  localStorage.setItem("transactions", JSON.stringify(transactions));
-  localStorage.setItem("balances", JSON.stringify(balances));
-  updateSummary();
-  renderTable();
-}
-
-// Dashboard totals
-function updateDashboardTotals(){
-  const now = new Date();
-  let daily=0, weekly=0, monthly=0, yearly=0;
-  transactions.forEach(tx=>{
-    const txDate = new Date(tx.date);
-    const amt = (tx.type!=="rebalance") ? tx.amount : 0;
-    if(txDate.toDateString() === now.toDateString()) daily+=amt;
-    const weekStart = new Date(now); weekStart.setDate(now.getDate()-now.getDay());
-    if(txDate>=weekStart) weekly+=amt;
-    if(txDate.getMonth()===now.getMonth() && txDate.getFullYear()===now.getFullYear()) monthly+=amt;
-    if(txDate.getFullYear()===now.getFullYear()) yearly+=amt;
-  });
-  dailyEl.textContent = `₱${daily}`;
-  weeklyEl.textContent = `₱${weekly}`;
-  monthlyEl.textContent = `₱${monthly}`;
-  yearlyEl.textContent = `₱${yearly}`;
-}
-
-// Initialize
-openTab('dashboard');
-updateSummary();
-renderTable();
-
-
-// Your Firebase config
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyDF5BuG7cfbLhyIWJkgzKVNmXH9KtB4_AQ",
   authDomain: "cashflowsystem-e8597.firebaseapp.com",
@@ -173,55 +15,43 @@ const firebaseConfig = {
   measurementId: "G-8NG4M1874C"
 };
 
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
+// ----------------- Global Variables -----------------
+let currentUserRole = "";
+const balancesRef = doc(db, "balances", "main");
 
+// ----------------- LOGIN -----------------
+async function login(email, password){
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const uid = userCredential.user.uid;
 
-                                                                            // 1. Initialize Firebase
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "XXX",
-  appId: "XXX"
-};
+    // Get role from Firestore
+    const userDoc = await getDoc(doc(db, "users", uid));
+    if(userDoc.exists()){
+      currentUserRole = userDoc.data().name; // "owner" or "cashier"
 
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
+      if(currentUserRole === "owner") showOwnerUI();
+      else showStaffUI();
 
-// 2. Login Function
-function login(email, password) {
-  firebase.auth().signInWithEmailAndPassword(email, password)
-    .then((userCredential) => {
-      const user = userCredential.user;
-      const uid = user.uid;
+      loadDashboard();
+      loadTransactions();
 
-      // Fetch role from Firestore
-      return db.collection("users").doc(uid).get();
-    })
-    .then((doc) => {
-      if(doc.exists){
-        const role = doc.data().name; // "owner" or "cashier"
-        window.currentUserRole = role;
-        
-        // Show appropriate UI
-        if(role === "owner") showOwnerUI();
-        else showStaffUI();
-      } else {
-        alert("No role assigned for this user.");
-      }
-    })
-    .catch((error)=>{
-      alert(error.message);
-    });
+    } else {
+      alert("No role assigned for this user in Firestore!");
+    }
+
+  } catch(error) {
+    alert(error.message);
+  }
 }
 
-
-                                                                          // Login form submit
+// Login form listener
 document.getElementById("loginForm").addEventListener("submit", e=>{
   e.preventDefault();
   const email = document.getElementById("loginEmail").value;
@@ -229,16 +59,172 @@ document.getElementById("loginForm").addEventListener("submit", e=>{
   login(email, password);
 });
 
-                                                                          // Show/hide sections after login
+// ----------------- ROLE-BASED UI -----------------
 function showOwnerUI(){
   document.getElementById("loginSection").style.display = "none";
   document.getElementById("appSection").style.display = "block";
-  // Show rebalance, clear/reset buttons
+  document.getElementById("rebalance").style.display = "block";
+  document.getElementById("clearResetBtn").style.display = "block";
 }
 
 function showStaffUI(){
   document.getElementById("loginSection").style.display = "none";
   document.getElementById("appSection").style.display = "block";
-  // Hide rebalance and clear/reset buttons
+  document.getElementById("rebalance").style.display = "none";
+  document.getElementById("clearResetBtn").style.display = "none";
 }
 
+// ----------------- TAB SWITCH -----------------
+function openTab(tabName){
+  const tabs = document.querySelectorAll(".tabcontent");
+  tabs.forEach(t=>t.style.display="none");
+  document.getElementById(tabName).style.display="block";
+
+  const buttons = document.querySelectorAll(".tablink");
+  buttons.forEach(b=>b.classList.remove("active"));
+  event.currentTarget.classList.add("active");
+}
+
+// ----------------- AUTO FEE CALC -----------------
+function calculateFee(amount){
+  if(amount < 100) return 5;
+  if(amount < 500) return 10;
+  if(amount < 1000) return 20;
+  if(amount < 1500) return 30;
+  if(amount < 2000) return 40;
+  return 20 + Math.floor((amount-1000)/1000)*20; // per thousand after 1000
+}
+
+// ----------------- ADD TRANSACTION -----------------
+document.getElementById("transactionForm").addEventListener("submit", async e=>{
+  e.preventDefault();
+
+  const type = document.getElementById("type").value;
+  const amount = parseFloat(document.getElementById("amount").value);
+  const method = document.getElementById("method").value;
+  const notes = document.getElementById("notes").value || "";
+
+  const fee = calculateFee(amount);
+  const profit = type==="cashin"? amount-fee : -amount;
+
+  // Add transaction
+  await addDoc(collection(db, "transactions"), {
+    date: new Date().toISOString(),
+    type, amount, method, fee, profit, notes,
+    role: currentUserRole
+  });
+
+  // Update balances
+  if(type==="cashin"){
+    if(method==="cash") await updateDoc(balancesRef, { cash: increment(amount-fee), profit: increment(fee) });
+    else await updateDoc(balancesRef, { gcash: increment(amount-fee), profit: increment(fee) });
+  } else {
+    if(method==="cash") await updateDoc(balancesRef, { cash: increment(-amount) });
+    else await updateDoc(balancesRef, { gcash: increment(-amount) });
+  }
+
+  document.getElementById("transactionForm").reset();
+  loadDashboard();
+  loadTransactions();
+});
+
+// ----------------- REBALANCE -----------------
+document.getElementById("rebalanceForm").addEventListener("submit", async e=>{
+  e.preventDefault();
+  const from = document.getElementById("rebalanceFrom").value;
+  const to = document.getElementById("rebalanceTo").value;
+  const amount = parseFloat(document.getElementById("rebalanceAmount").value);
+  const notes = document.getElementById("rebalanceNotes").value || "";
+
+  if(from===to){ alert("Cannot transfer to same account!"); return; }
+
+  // Update balances
+  if(from==="cash" && to==="gcash"){
+    await updateDoc(balancesRef, { cash: increment(-amount), gcash: increment(amount) });
+  } else if(from==="gcash" && to==="cash"){
+    await updateDoc(balancesRef, { gcash: increment(-amount), cash: increment(amount) });
+  }
+
+  // Add rebalance transaction
+  await addDoc(collection(db, "transactions"), {
+    date: new Date().toISOString(),
+    type: "rebalance",
+    amount,
+    method: `${from}→${to}`,
+    fee: 0,
+    profit: 0,
+    notes,
+    role: currentUserRole
+  });
+
+  document.getElementById("rebalanceForm").reset();
+  loadDashboard();
+  loadTransactions();
+});
+
+// ----------------- LOAD DASHBOARD -----------------
+async function loadDashboard(){
+  const snap = await getDoc(balancesRef);
+  if(snap.exists()){
+    const data = snap.data();
+    document.getElementById("dashCash").innerText = `₱${data.cash || 0}`;
+    document.getElementById("dashGcash").innerText = `₱${data.gcash || 0}`;
+    document.getElementById("dashProfit").innerText = `₱${data.profit || 0}`;
+  }
+
+  // Compute totals
+  const txSnap = await getDocs(collection(db, "transactions"));
+  let daily=0, weekly=0, monthly=0, yearly=0;
+  const now = new Date();
+
+  txSnap.forEach(doc=>{
+    const tx = doc.data();
+    if(tx.type==="rebalance") return;
+
+    const txDate = new Date(tx.date);
+    if(txDate.toDateString()===now.toDateString()) daily+=tx.profit;
+    if(txDate > new Date(now.getFullYear(), now.getMonth(), now.getDate()-7)) weekly+=tx.profit;
+    if(txDate.getMonth()===now.getMonth() && txDate.getFullYear()===now.getFullYear()) monthly+=tx.profit;
+    if(txDate.getFullYear()===now.getFullYear()) yearly+=tx.profit;
+  });
+
+  document.getElementById("dailyTotal").innerText = `₱${daily}`;
+  document.getElementById("weeklyTotal").innerText = `₱${weekly}`;
+  document.getElementById("monthlyTotal").innerText = `₱${monthly}`;
+  document.getElementById("yearlyTotal").innerText = `₱${yearly}`;
+}
+
+// ----------------- LOAD TRANSACTIONS -----------------
+async function loadTransactions(){
+  const txSnap = await getDocs(collection(db, "transactions"));
+  const tbody = document.querySelector("#transactionTable tbody");
+  tbody.innerHTML = "";
+
+  txSnap.forEach(doc=>{
+    const tx = doc.data();
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${new Date(tx.date).toLocaleString()}</td>
+      <td>${tx.type}</td>
+      <td>₱${tx.amount}</td>
+      <td>${tx.method}</td>
+      <td>₱${tx.fee}</td>
+      <td>₱${tx.profit}</td>
+      <td>${tx.notes}</td>
+      <td>${tx.role}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// ----------------- CLEAR / RESET -----------------
+async function clearAllData(){
+  if(confirm("Are you sure you want to clear all transactions and reset balances?")){
+    const txSnap = await getDocs(collection(db, "transactions"));
+    txSnap.forEach(doc=>doc.ref.delete());
+    await updateDoc(balancesRef, { cash:0, gcash:0, profit:0 });
+    loadDashboard();
+    loadTransactions();
+    alert("All data cleared!");
+  }
+}
