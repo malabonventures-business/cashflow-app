@@ -3,117 +3,143 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cashflow App</title>
+  <title>Business Dashboard</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="container">
-    <h1>💵 Cashflow Manager</h1>
+    <h1>💼 Business Dashboard</h1>
 
-    <!-- Summary Cards -->
-    <div class="cards">
-      <div class="card">
-        <h3>Cash-on-hand</h3>
-        <p id="cashBalance">₱0</p>
+    <!-- Navigation Tabs -->
+    <div class="tabs">
+      <button class="tablink active" onclick="openTab('dashboard')">Dashboard</button>
+      <button class="tablink" onclick="openTab('cashflow')">Cash-in / Cash-out</button>
+      <button class="tablink" onclick="openTab('rebalance')">Rebalance</button>
+    </div>
+
+    <!-- Dashboard Tab -->
+    <div id="dashboard" class="tabcontent">
+      <div class="cards">
+        <div class="card">
+          <h3>Cash-on-hand</h3>
+          <p id="dashCash">₱0</p>
+        </div>
+        <div class="card">
+          <h3>GCash Balance</h3>
+          <p id="dashGcash">₱0</p>
+        </div>
+        <div class="card">
+          <h3>Total Profit</h3>
+          <p id="dashProfit">₱0</p>
+        </div>
       </div>
-      <div class="card">
-        <h3>GCash Balance</h3>
-        <p id="gcashBalance">₱0</p>
-      </div>
-      <div class="card">
-        <h3>Total Profit</h3>
-        <p id="totalProfit">₱0</p>
+      <div class="cards">
+        <div class="card">
+          <h4>Daily Total</h4>
+          <p id="dailyTotal">₱0</p>
+        </div>
+        <div class="card">
+          <h4>Weekly Total</h4>
+          <p id="weeklyTotal">₱0</p>
+        </div>
+        <div class="card">
+          <h4>Monthly Total</h4>
+          <p id="monthlyTotal">₱0</p>
+        </div>
+        <div class="card">
+          <h4>Yearly Total</h4>
+          <p id="yearlyTotal">₱0</p>
+        </div>
       </div>
     </div>
 
-    <!-- Transaction Form -->
-    <div class="form-container">
-      <h2>Add Transaction</h2>
-      <form id="transactionForm">
-        <label>Type:
-          <select id="type" required>
-            <option value="cashin">Cash-in</option>
-            <option value="cashout">Cash-out</option>
-          </select>
-        </label>
+    <!-- Cashflow Tab -->
+    <div id="cashflow" class="tabcontent">
+      <div class="form-container">
+        <h2>Add Cash-in / Cash-out</h2>
+        <form id="transactionForm">
+          <label>Type:
+            <select id="type" required>
+              <option value="cashin">Cash-in</option>
+              <option value="cashout">Cash-out</option>
+            </select>
+          </label>
 
-        <label>Amount:
-          <input type="number" id="amount" required min="1" placeholder="₱0">
-        </label>
+          <label>Amount:
+            <input type="number" id="amount" required min="1" placeholder="₱0">
+          </label>
 
-        <label>Payment Method:
-          <select id="method" required>
-            <option value="cash">Cash</option>
-            <option value="gcash">GCash</option>
-          </select>
-        </label>
+          <label>Payment Method:
+            <select id="method" required>
+              <option value="cash">Cash</option>
+              <option value="gcash">GCash</option>
+            </select>
+          </label>
 
-        <label>Fee (auto-tiered or manual):
-          <input type="number" id="fee" placeholder="Auto" min="0">
-        </label>
+          <label>Fee (auto-tiered or manual):
+            <input type="number" id="fee" placeholder="Auto" min="0">
+          </label>
 
-        <label>Notes:
-          <input type="text" id="notes" placeholder="Optional">
-        </label>
+          <label>Notes:
+            <input type="text" id="notes" placeholder="Optional">
+          </label>
 
-        <button type="submit">Add Transaction</button>
-      </form>
+          <button type="submit">Add Transaction</button>
+        </form>
+      </div>
+
+      <div class="table-container">
+        <h2>Transaction History</h2>
+        <table id="transactionTable">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Type</th>
+              <th>Amount</th>
+              <th>Method</th>
+              <th>Fee</th>
+              <th>Profit</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
     </div>
 
-    <!-- GCash / Cash Rebalance -->
-<div class="form-container">
-  <h2>Rebalance Cash / GCash</h2>
-  <form id="rebalanceForm">
-    <label>From:
-      <select id="rebalanceFrom" required>
-        <option value="cash">Cash-on-hand</option>
-        <option value="gcash">GCash</option>
-      </select>
-    </label>
+    <!-- Rebalance Tab -->
+    <div id="rebalance" class="tabcontent">
+      <div class="form-container">
+        <h2>Rebalance Cash / GCash</h2>
+        <form id="rebalanceForm">
+          <label>From:
+            <select id="rebalanceFrom" required>
+              <option value="cash">Cash-on-hand</option>
+              <option value="gcash">GCash</option>
+            </select>
+          </label>
 
-    <label>To:
-      <select id="rebalanceTo" required>
-        <option value="cash">Cash-on-hand</option>
-        <option value="gcash">GCash</option>
-      </select>
-    </label>
+          <label>To:
+            <select id="rebalanceTo" required>
+              <option value="cash">Cash-on-hand</option>
+              <option value="gcash">GCash</option>
+            </select>
+          </label>
 
-    <label>Amount:
-      <input type="number" id="rebalanceAmount" required min="1" placeholder="₱0">
-    </label>
+          <label>Amount:
+            <input type="number" id="rebalanceAmount" required min="1" placeholder="₱0">
+          </label>
 
-    <label>Notes:
-      <input type="text" id="rebalanceNotes" placeholder="Optional">
-    </label>
+          <label>Notes:
+            <input type="text" id="rebalanceNotes" placeholder="Optional">
+          </label>
 
-    <button type="submit">Transfer</button>
-  </form>
-</div>
-
-
-    
-    <!-- Transaction Table -->
-    <div class="table-container">
-      <h2>Transaction History</h2>
-      <table id="transactionTable">
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Type</th>
-            <th>Amount</th>
-            <th>Method</th>
-            <th>Fee</th>
-            <th>Profit</th>
-            <th>Notes</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- Transactions go here -->
-        </tbody>
-      </table>
+          <button type="submit">Transfer</button>
+        </form>
+      </div>
     </div>
+
   </div>
-
   <script src="script.js"></script>
 </body>
 </html>
