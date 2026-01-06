@@ -49,7 +49,7 @@ async function login(email, password){
 // -----------------------------
 // ROLE-BASED UI + STARTING BALANCE
 // -----------------------------
-async function applyRoleUI(role) {
+function applyRoleUI(role) {
   const dashboard = document.getElementById("dashboard");
   const rebalance = document.getElementById("rebalance");
   const navDashboard = document.getElementById("navDashboard");
