@@ -12,6 +12,16 @@ const firebaseConfig = {
   measurementId: "G-8NG4M1874C"
 };
 
+
+// Initialize Firebase (compat)
+firebase.initializeApp(firebaseConfig);
+
+// Initialize services
+const auth = firebase.auth();
+const db = firebase.firestore();
+const analytics = firebase.analytics();
+
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
