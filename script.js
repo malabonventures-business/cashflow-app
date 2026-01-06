@@ -1,8 +1,5 @@
 // ----------------- Firebase Setup -----------------
-import { initializeApp } from "firebase/app";
-import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
-import { getFirestore, doc, getDoc, collection, addDoc, updateDoc, increment, getDocs } from "firebase/firestore";
-import { getAnalytics } from "firebase/analytics";
+
 
 // Firebase config
 const firebaseConfig = {
