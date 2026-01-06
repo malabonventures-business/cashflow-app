@@ -46,7 +46,7 @@ async function login(email, password){
 }
 
 
-                                                                          function applyRoleUI(role) {
+function applyRoleUI(role) {
   const dashboard = document.getElementById("dashboardSection");
   const rebalance = document.getElementById("rebalanceSection");
   const starting = document.getElementById("startingBalanceSection");
@@ -54,7 +54,6 @@ async function login(email, password){
   const navRebalance = document.getElementById("navRebalance");
 
   if (role === "staff") {
-    // HIDE OWNER FEATURES
     dashboard.style.display = "none";
     rebalance.style.display = "none";
     starting.style.display = "none";
@@ -63,7 +62,6 @@ async function login(email, password){
   }
 
   if (role === "owner") {
-    // SHOW ALL
     dashboard.style.display = "block";
     rebalance.style.display = "block";
     starting.style.display = "block";
@@ -71,7 +69,6 @@ async function login(email, password){
     navRebalance.style.display = "inline-block";
   }
 }
-
 
     
 // Login form listener
@@ -269,3 +266,26 @@ async function setStartingBalance() {
 
   alert("Starting balance saved!");
 }
+
+
+firebase.auth().onAuthStateChanged(async (user) => {
+  if (!user) return;
+
+  const userDoc = await db.collection("users").doc(user.uid).get();
+
+  if (!userDoc.exists) {
+    alert("No role assigned for this user in Firestore!");
+    firebase.auth().signOut();
+    return;
+  }
+
+  const role = userDoc.data().role;
+  currentUserRole = role;
+
+  // ✅ SHOW APP, HIDE LOGIN
+  document.getElementById("loginSection").style.display = "none";
+  document.getElementById("appSection").style.display = "block";
+
+  // ✅ APPLY ROLE RULES
+  applyRoleUI(role);
+});
