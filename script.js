@@ -160,3 +160,62 @@ function updateDashboardTotals(){
 openTab('dashboard');
 updateSummary();
 renderTable();
+
+
+// Your Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyDF5BuG7cfbLhyIWJkgzKVNmXH9KtB4_AQ",
+  authDomain: "cashflowsystem-e8597.firebaseapp.com",
+  projectId: "cashflowsystem-e8597",
+  storageBucket: "cashflowsystem-e8597.firebasestorage.app",
+  messagingSenderId: "282993339590",
+  appId: "1:282993339590:web:a9aa3ed3d21341195fbbc7",
+  measurementId: "G-8NG4M1874C"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+
+
+                                                  // 1. Initialize Firebase
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "XXX",
+  appId: "XXX"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// 2. Login Function
+function login(email, password) {
+  firebase.auth().signInWithEmailAndPassword(email, password)
+    .then((userCredential) => {
+      const user = userCredential.user;
+      const uid = user.uid;
+
+      // Fetch role from Firestore
+      return db.collection("users").doc(uid).get();
+    })
+    .then((doc) => {
+      if(doc.exists){
+        const role = doc.data().name; // "owner" or "cashier"
+        window.currentUserRole = role;
+        
+        // Show appropriate UI
+        if(role === "owner") showOwnerUI();
+        else showStaffUI();
+      } else {
+        alert("No role assigned for this user.");
+      }
+    })
+    .catch((error)=>{
+      alert(error.message);
+    });
+}
