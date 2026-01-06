@@ -31,6 +31,13 @@ function renderTable() {
   transactionTableBody.innerHTML = "";
   transactions.forEach(tx => {
     const tr = document.createElement("tr");
+
+    // Highlight rebalance transactions
+    if (tx.type === "rebalance") {
+      tr.style.backgroundColor = "#fff3cd"; // light yellow
+      tr.style.fontStyle = "italic";
+    }
+
     tr.innerHTML = `
       <td>${tx.date}</td>
       <td>${tx.type}</td>
@@ -43,6 +50,7 @@ function renderTable() {
     transactionTableBody.appendChild(tr);
   });
 }
+
 
 // Add transaction
 transactionForm.addEventListener("submit", (e) => {
