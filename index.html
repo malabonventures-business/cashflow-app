@@ -10,24 +10,23 @@
   <div class="container">
 
     <!-- LOGIN SECTION -->
-<div id="loginSection">
-  <h1>Login</h1>
-  <form id="loginForm">
-    <label>Email:
-      <input type="email" id="loginEmail" required>
-    </label>
-    <label>Password:
-      <input type="password" id="loginPassword" required>
-    </label>
-    <button type="submit">Login</button>
-  </form>
-</div>
+    <div id="loginSection">
+      <h1>Login</h1>
+      <form id="loginForm">
+        <label>Email:
+          <input type="email" id="loginEmail" required>
+        </label>
+        <label>Password:
+          <input type="password" id="loginPassword" required>
+        </label>
+        <button type="submit">Login</button>
+      </form>
+    </div>
 
-<!-- MAIN APP SECTION -->
-<div id="appSection" style="display:none;">
+    <!-- MAIN APP SECTION -->
+    <div id="appSection" style="display:none;">
 
-  <h1>💼 Cashflow System</h1>
-  <!-- tanan dashboard / transactions / rebalance naa sulod diri -->
+      <h1>💼 Cashflow System</h1>
 
       <!-- Tabs -->
       <div class="tabs">
@@ -148,27 +147,21 @@
     </div>
 
     <!-- STARTING BALANCE MODAL (OWNER ONLY) -->
-<div id="startingBalanceModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); justify-content:center; align-items:center; z-index:1000;">
-  <div style="background:#fff; padding:30px; border-radius:10px; width:350px; text-align:center;">
-    <h2>Set Starting Balance</h2>
-    <label>
-      Starting Cash-on-hand:
-      <input type="number" id="startCash" min="0" placeholder="₱0" style="width:100%; padding:5px; margin:10px 0;">
-    </label>
-    <label>
-      Starting GCash Balance:
-      <input type="number" id="startGCash" min="0" placeholder="₱0" style="width:100%; padding:5px; margin:10px 0;">
-    </label>
-    <button onclick="setStartingBalance()" style="padding:10px 20px; margin-top:10px;">Save Starting Balance</button>
-  </div>
-</div>
+    <div id="startingBalanceModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); justify-content:center; align-items:center; z-index:1000;">
+      <div style="background:#fff; padding:30px; border-radius:10px; width:350px; text-align:center;">
+        <h2>Set Starting Balance</h2>
+        <label>
+          Starting Cash-on-hand:
+          <input type="number" id="startCash" min="0" placeholder="₱0" style="width:100%; padding:5px; margin:10px 0;">
+        </label>
+        <label>
+          Starting GCash Balance:
+          <input type="number" id="startGCash" min="0" placeholder="₱0" style="width:100%; padding:5px; margin:10px 0;">
+        </label>
+        <button onclick="setStartingBalance()" style="padding:10px 20px; margin-top:10px;">Save Starting Balance</button>
+      </div>
+    </div>
 
-
-
-      
-
-    
-    
   </div>
 
   <!-- Firebase CDN -->
@@ -179,4 +172,5 @@
 
   <!-- Your script -->
   <script src="script.js"></script>
-
+</body>
+</html>
