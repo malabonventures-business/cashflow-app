@@ -45,6 +45,35 @@ async function login(email, password){
   }
 }
 
+
+                                                                          function applyRoleUI(role) {
+  const dashboard = document.getElementById("dashboardSection");
+  const rebalance = document.getElementById("rebalanceSection");
+  const starting = document.getElementById("startingBalanceSection");
+  const navDashboard = document.getElementById("navDashboard");
+  const navRebalance = document.getElementById("navRebalance");
+
+  if (role === "staff") {
+    // HIDE OWNER FEATURES
+    dashboard.style.display = "none";
+    rebalance.style.display = "none";
+    starting.style.display = "none";
+    navDashboard.style.display = "none";
+    navRebalance.style.display = "none";
+  }
+
+  if (role === "owner") {
+    // SHOW ALL
+    dashboard.style.display = "block";
+    rebalance.style.display = "block";
+    starting.style.display = "block";
+    navDashboard.style.display = "inline-block";
+    navRebalance.style.display = "inline-block";
+  }
+}
+
+
+    
 // Login form listener
 document.getElementById("loginForm").addEventListener("submit", e=>{
   e.preventDefault();
@@ -219,4 +248,24 @@ async function clearAllData(){
     loadTransactions();
     alert("All data cleared!");
   }
+}
+
+
+async function setStartingBalance() {
+  const gcash = Number(document.getElementById("startGCash").value);
+  const cash = Number(document.getElementById("startCash").value);
+
+  if (gcash < 0 || cash < 0) {
+    alert("Invalid amount");
+    return;
+  }
+
+  await db.collection("balances").doc("main").set({
+    gcash: gcash,
+    cash: cash,
+    initialized: true,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  alert("Starting balance saved!");
 }
