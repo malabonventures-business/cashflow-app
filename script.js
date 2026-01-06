@@ -62,11 +62,17 @@ function applyRoleUI(role) {
   }
 
   if (role === "owner") {
+      // Show main tabs / sections
     dashboard.style.display = "block";
     rebalance.style.display = "block";
-    starting.style.display = "block";
     navDashboard.style.display = "inline-block";
     navRebalance.style.display = "inline-block";
+
+     // Check if starting balance exists
+  const configDoc = await db.collection("system").doc("startingBalance").get();
+  if (!configDoc.exists) {
+    // Show modal to set starting balance
+    document.getElementById("startingBalanceModal").style.display = "flex";
   }
 }
 
