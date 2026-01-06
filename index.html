@@ -147,6 +147,31 @@
 
     </div>
 
+    <!-- STARTING BALANCE (OWNER ONLY) -->
+<div id="startingBalance" class="tabcontent">
+  <div class="form-container">
+    <h2>Set Starting Balance (Owner Only)</h2>
+
+    <label>Starting Cash-on-hand:
+      <input type="number" id="startCash" min="0" placeholder="₱0">
+    </label>
+
+    <label>Starting GCash Balance:
+      <input type="number" id="startGCash" min="0" placeholder="₱0">
+    </label>
+
+    <button onclick="setStartingBalance()">Save Starting Balance</button>
+  </div>
+</div>
+
+    <button class="tablink" onclick="openTab('startingBalance', this)">
+  Starting Balance
+</button>
+
+      
+
+    
+    
   </div>
 
   <!-- Firebase CDN -->
@@ -158,39 +183,3 @@
   <!-- Your script -->
   <script src="script.js"></script>
 
-
-                                                                    <!-- NAV -->
-<nav>
-  <button id="navDashboard">Dashboard</button>
-  <button id="navTransaction">Cash In / Cash Out</button>
-  <button id="navRebalance">Rebalance</button>
-</nav>
-
-<!-- DASHBOARD -->
-<section id="dashboardSection">
-  <h2>Dashboard</h2>
-  <!-- daily / weekly / monthly / yearly -->
-</section>
-
-<!-- TRANSACTIONS -->
-<section id="transactionSection">
-  <h2>Cash In / Cash Out</h2>
-</section>
-
-<!-- REBALANCE -->
-<section id="rebalanceSection">
-  <h2>Rebalance</h2>
-</section>
-
-<!-- STARTING BALANCE (OWNER ONLY) -->
-<section id="startingBalanceSection">
-  <h2>Starting Balance</h2>
-
-  <input type="number" id="startGCash" placeholder="Starting GCash">
-  <input type="number" id="startCash" placeholder="Starting Cash">
-
-  <button onclick="setStartingBalance()">Save Starting Balance</button>
-</section>
-
-</body>
-</html>
