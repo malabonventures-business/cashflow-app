@@ -147,22 +147,22 @@
 
     </div>
 
-    <!-- STARTING BALANCE (OWNER ONLY) -->
-<div id="startingBalance" class="modal" style="display:none;">
-  <div class="modal-content">
-    <h2>Set Starting Balance (Owner Only)</h2>
-
-    <label>Starting Cash-on-hand:
-      <input type="number" id="startCash" min="0">
+    <!-- STARTING BALANCE MODAL (OWNER ONLY) -->
+<div id="startingBalanceModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); justify-content:center; align-items:center; z-index:1000;">
+  <div style="background:#fff; padding:30px; border-radius:10px; width:350px; text-align:center;">
+    <h2>Set Starting Balance</h2>
+    <label>
+      Starting Cash-on-hand:
+      <input type="number" id="startCash" min="0" placeholder="₱0" style="width:100%; padding:5px; margin:10px 0;">
     </label>
-
-    <label>Starting GCash Balance:
-      <input type="number" id="startGCash" min="0">
+    <label>
+      Starting GCash Balance:
+      <input type="number" id="startGCash" min="0" placeholder="₱0" style="width:100%; padding:5px; margin:10px 0;">
     </label>
-
-    <button onclick="setStartingBalance()">Save</button>
+    <button onclick="setStartingBalance()" style="padding:10px 20px; margin-top:10px;">Save Starting Balance</button>
   </div>
 </div>
+
 
 
       
