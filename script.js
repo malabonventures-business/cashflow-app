@@ -1,43 +1,59 @@
-// Get elements
-const cashBalanceEl = document.getElementById("cashBalance");
-const gcashBalanceEl = document.getElementById("gcashBalance");
-const totalProfitEl = document.getElementById("totalProfit");
+// Elements
+const tablinks = document.querySelectorAll(".tablink");
+const tabcontents = document.querySelectorAll(".tabcontent");
+
+const dashCashEl = document.getElementById("dashCash");
+const dashGcashEl = document.getElementById("dashGcash");
+const dashProfitEl = document.getElementById("dashProfit");
+const dailyEl = document.getElementById("dailyTotal");
+const weeklyEl = document.getElementById("weeklyTotal");
+const monthlyEl = document.getElementById("monthlyTotal");
+const yearlyEl = document.getElementById("yearlyTotal");
+
 const transactionForm = document.getElementById("transactionForm");
 const transactionTableBody = document.querySelector("#transactionTable tbody");
 
-// Load from localStorage or initialize
+const rebalanceForm = document.getElementById("rebalanceForm");
+
+// Load data
 let transactions = JSON.parse(localStorage.getItem("transactions")) || [];
-let balances = JSON.parse(localStorage.getItem("balances")) || {cash: 0, gcash: 0, profit: 0};
+let balances = JSON.parse(localStorage.getItem("balances")) || {cash:0, gcash:0, profit:0};
+
+// Tabs
+function openTab(tabName) {
+  tabcontents.forEach(tc => tc.classList.remove("active"));
+  tablinks.forEach(tl => tl.classList.remove("active"));
+  document.getElementById(tabName).classList.add("active");
+  document.querySelector(`.tablink[onclick="openTab('${tabName}')"]`).classList.add("active");
+}
 
 // Fee tiers
 function calculateFee(amount) {
-  if (amount <= 100) return 5;
-  if (amount <= 500) return 10;
-  if (amount <= 1000) return 20;
-  if (amount <= 1500) return 30;
-  if (amount <= 2000) return 40;
-  return Math.floor(amount / 1000) * 20; // 20 per 1k above
+  if(amount <= 100) return 5;
+  if(amount <= 500) return 10;
+  if(amount <= 1000) return 20;
+  if(amount <= 1500) return 30;
+  if(amount <= 2000) return 40;
+  return Math.floor(amount/1000)*20;
 }
 
 // Update summary cards
 function updateSummary() {
-  cashBalanceEl.textContent = `₱${balances.cash}`;
-  gcashBalanceEl.textContent = `₱${balances.gcash}`;
-  totalProfitEl.textContent = `₱${balances.profit}`;
+  dashCashEl.textContent = `₱${balances.cash}`;
+  dashGcashEl.textContent = `₱${balances.gcash}`;
+  dashProfitEl.textContent = `₱${balances.profit}`;
+  updateDashboardTotals();
 }
 
-// Render transaction table
+// Render table
 function renderTable() {
   transactionTableBody.innerHTML = "";
   transactions.forEach(tx => {
     const tr = document.createElement("tr");
-
-    // Highlight rebalance transactions
-    if (tx.type === "rebalance") {
-      tr.style.backgroundColor = "#fff3cd"; // light yellow
+    if(tx.type === "rebalance") {
+      tr.style.backgroundColor = "#fff3cd";
       tr.style.fontStyle = "italic";
     }
-
     tr.innerHTML = `
       <td>${tx.date}</td>
       <td>${tx.type}</td>
@@ -51,11 +67,9 @@ function renderTable() {
   });
 }
 
-
-// Add transaction
-transactionForm.addEventListener("submit", (e) => {
+// Transaction form submit
+transactionForm.addEventListener("submit", e=>{
   e.preventDefault();
-
   const type = document.getElementById("type").value;
   const amount = parseFloat(document.getElementById("amount").value);
   const method = document.getElementById("method").value;
@@ -63,12 +77,11 @@ transactionForm.addEventListener("submit", (e) => {
   let fee = feeInput ? parseFloat(feeInput) : calculateFee(amount);
   let profit = fee;
 
-  // Update balances
-  if (type === "cashin") {
-    if (method === "cash") balances.cash += amount - fee;
+  if(type==="cashin"){
+    if(method==="cash") balances.cash += amount - fee;
     else balances.gcash += amount - fee;
-  } else if (type === "cashout") {
-    if (method === "cash") balances.cash -= amount;
+  } else if(type==="cashout"){
+    if(method==="cash") balances.cash -= amount;
     else balances.gcash -= amount;
   }
 
@@ -83,72 +96,67 @@ transactionForm.addEventListener("submit", (e) => {
     profit,
     notes: document.getElementById("notes").value
   };
-
   transactions.push(transaction);
-
-  // Save to localStorage
-  localStorage.setItem("transactions", JSON.stringify(transactions));
-  localStorage.setItem("balances", JSON.stringify(balances));
-
-  // Update UI
-  updateSummary();
-  renderTable();
-
+  saveAndUpdate();
   transactionForm.reset();
 });
 
-
-
-        // Rebalance form
-const rebalanceForm = document.getElementById("rebalanceForm");
-
-rebalanceForm.addEventListener("submit", (e) => {
+// Rebalance submit
+rebalanceForm.addEventListener("submit", e=>{
   e.preventDefault();
-
   const from = document.getElementById("rebalanceFrom").value;
   const to = document.getElementById("rebalanceTo").value;
   const amount = parseFloat(document.getElementById("rebalanceAmount").value);
   const notes = document.getElementById("rebalanceNotes").value;
 
-  if (from === to) {
-    alert("Cannot transfer to the same account.");
-    return;
-  }
+  if(from===to){ alert("Cannot transfer to same account."); return; }
+  if(balances[from]<amount){ alert(`Insufficient balance in ${from}`); return; }
 
-  // Check sufficient balance
-  if (balances[from] < amount) {
-    alert(`Insufficient balance in ${from}`);
-    return;
-  }
+  balances[from]-=amount;
+  balances[to]+=amount;
 
-  balances[from] -= amount;
-  balances[to] += amount;
-
-  // Add a transaction record for tracking (fee = 0, profit = 0)
   const transaction = {
     date: new Date().toLocaleString(),
-    type: "rebalance",
+    type:"rebalance",
     amount,
-    method: `${from}→${to}`,
-    fee: 0,
-    profit: 0,
+    method:`${from}→${to}`,
+    fee:0,
+    profit:0,
     notes: notes || "Rebalance"
   };
-
   transactions.push(transaction);
-
-  // Save and update
-  localStorage.setItem("transactions", JSON.stringify(transactions));
-  localStorage.setItem("balances", JSON.stringify(balances));
-
-  updateSummary();
-  renderTable();
-
+  saveAndUpdate();
   rebalanceForm.reset();
 });
 
+// Save & update UI
+function saveAndUpdate(){
+  localStorage.setItem("transactions", JSON.stringify(transactions));
+  localStorage.setItem("balances", JSON.stringify(balances));
+  updateSummary();
+  renderTable();
+}
 
-  
-// Initial render
+// Dashboard totals
+function updateDashboardTotals(){
+  const now = new Date();
+  let daily=0, weekly=0, monthly=0, yearly=0;
+  transactions.forEach(tx=>{
+    const txDate = new Date(tx.date);
+    const amt = (tx.type!=="rebalance") ? tx.amount : 0;
+    if(txDate.toDateString() === now.toDateString()) daily+=amt;
+    const weekStart = new Date(now); weekStart.setDate(now.getDate()-now.getDay());
+    if(txDate>=weekStart) weekly+=amt;
+    if(txDate.getMonth()===now.getMonth() && txDate.getFullYear()===now.getFullYear()) monthly+=amt;
+    if(txDate.getFullYear()===now.getFullYear()) yearly+=amt;
+  });
+  dailyEl.textContent = `₱${daily}`;
+  weeklyEl.textContent = `₱${weekly}`;
+  monthlyEl.textContent = `₱${monthly}`;
+  yearlyEl.textContent = `₱${yearly}`;
+}
+
+// Initialize
+openTab('dashboard');
 updateSummary();
 renderTable();
