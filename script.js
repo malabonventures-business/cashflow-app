@@ -120,42 +120,49 @@ document.getElementById("transactionForm").addEventListener("submit", async e=>{
   let fee = calculateFee(amount);
   let profit = 0;
 
-  // ----- LOADING -----
-  if(notes.toLowerCase().includes("loading")) {
-    const extraCost = 2; // e.g., GCash deduction
-    const customerPaid = amount + 8; // Example, customer pays 110 for 99 load
-    profit = customerPaid - (amount + extraCost);
+  // --- TRANSACTION TYPES ---
+  if(type === "cashin") {
+    profit = fee;
+    if(method==="cash") await balancesRef.update({ cash: firebase.firestore.FieldValue.increment(amount-fee), profit: firebase.firestore.FieldValue.increment(fee) });
+    else await balancesRef.update({ gcash: firebase.firestore.FieldValue.increment(amount-fee), profit: firebase.firestore.FieldValue.increment(fee) });
 
-    if(method==="gcash") {
-      await balancesRef.update({ gcash: firebase.firestore.FieldValue.increment(-(amount + extraCost)), profit: firebase.firestore.FieldValue.increment(profit) });
-    } else {
-      await balancesRef.update({ cash: firebase.firestore.FieldValue.increment(-(amount + extraCost)), profit: firebase.firestore.FieldValue.increment(profit) });
-    }
-  }
-  // ----- BILLS PAYMENT -----
-  else if(notes.toLowerCase().includes("bill") || notes.toLowerCase().includes("bills payment")) {
+  } else if(type === "cashout") {
+    profit = -amount;
+    if(method==="cash") await balancesRef.update({ cash: firebase.firestore.FieldValue.increment(-amount) });
+    else await balancesRef.update({ gcash: firebase.firestore.FieldValue.increment(-amount) });
+
+  } else if(type === "loading") {
+    const extraCost = 2; // extra GCash deduction
+    profit = amount - (amount + extraCost); // negative if GCash used
+
+    if(method==="gcash") await balancesRef.update({ gcash: firebase.firestore.FieldValue.increment(-(amount + extraCost)), profit: firebase.firestore.FieldValue.increment(extraCost) });
+    else await balancesRef.update({ cash: firebase.firestore.FieldValue.increment(-(amount + extraCost)), profit: firebase.firestore.FieldValue.increment(extraCost) });
+
+  } else if(type === "billspayment") {
     const totalDeduction = amount + fee;
     profit = fee;
 
-    if(method==="gcash") {
-      await balancesRef.update({ gcash: firebase.firestore.FieldValue.increment(-totalDeduction), profit: firebase.firestore.FieldValue.increment(profit) });
-    } else {
-      await balancesRef.update({ cash: firebase.firestore.FieldValue.increment(-totalDeduction), profit: firebase.firestore.FieldValue.increment(profit) });
-    }
+    if(method==="gcash") await balancesRef.update({ gcash: firebase.firestore.FieldValue.increment(-totalDeduction), profit: firebase.firestore.FieldValue.increment(fee) });
+    else await balancesRef.update({ cash: firebase.firestore.FieldValue.increment(-totalDeduction), profit: firebase.firestore.FieldValue.increment(fee) });
   }
-  // ----- NORMAL CASHIN / CASHOUT -----
-  else {
-    if(type==="cashin") profit = fee;
-    else profit = -amount;
 
-    if(type==="cashin"){
-      if(method==="cash") await balancesRef.update({ cash: firebase.firestore.FieldValue.increment(amount-fee), profit: firebase.firestore.FieldValue.increment(fee) });
-      else await balancesRef.update({ gcash: firebase.firestore.FieldValue.increment(amount-fee), profit: firebase.firestore.FieldValue.increment(fee) });
-    } else {
-      if(method==="cash") await balancesRef.update({ cash: firebase.firestore.FieldValue.increment(-amount) });
-      else await balancesRef.update({ gcash: firebase.firestore.FieldValue.increment(-amount) });
-    }
-  }
+  // Save transaction
+  await db.collection("transactions").add({
+    date: new Date().toISOString(),
+    type,
+    amount,
+    method,
+    fee,
+    profit,
+    notes,
+    role: currentUserRole
+  });
+
+  document.getElementById("transactionForm").reset();
+  await loadDashboard();
+  await loadTransactions();
+});
+
 
   // Save transaction
   await db.collection("transactions").add({
