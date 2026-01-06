@@ -30,15 +30,17 @@ async function login(email, password){
     if(userDoc.exists){
       currentUserRole = userDoc.data().role; // "owner" or "cashier"
 
+      // Hide login, show app
       document.getElementById("loginSection").style.display = "none";
       document.getElementById("appSection").style.display = "block";
 
-      // Apply role rules
+      // Apply role-based UI
       await applyRoleUI(currentUserRole);
 
       // Load data
       await loadDashboard();
       await loadTransactions();
+
     } else {
       alert("No role assigned for this user in Firestore!");
       auth.signOut();
@@ -57,31 +59,33 @@ async function applyRoleUI(role) {
   const rebalance = document.getElementById("rebalance");
   const navDashboard = document.getElementById("navDashboard");
   const navRebalance = document.getElementById("navRebalance");
+  const startingModal = document.getElementById("startingBalanceModal");
+  const clearBtn = document.getElementById("clearResetBtn");
 
-  if (role === "staff") {
+  if(role === "staff") {
     dashboard.style.display = "none";
     rebalance.style.display = "none";
     navDashboard.style.display = "none";
     navRebalance.style.display = "none";
-    document.getElementById("clearResetBtn").style.display = "none";
+    clearBtn.style.display = "none";
   }
 
-  if (role === "owner") {
+  if(role === "owner") {
     dashboard.style.display = "block";
     rebalance.style.display = "block";
     navDashboard.style.display = "inline-block";
     navRebalance.style.display = "inline-block";
-    document.getElementById("clearResetBtn").style.display = "block";
+    clearBtn.style.display = "block";
 
     // Check if starting balance exists
-    const configDoc = await db.collection("balances").doc("main").get();
-    if (!configDoc.exists) {
-      document.getElementById("startingBalanceModal").style.display = "flex";
+    const docSnap = await balancesRef.get();
+    if(!docSnap.exists || !docSnap.data().initialized) {
+      startingModal.style.display = "flex";
     }
   }
 }
 
-// ----------------- Login Form -----------------
+// ----------------- LOGIN FORM -----------------
 document.getElementById("loginForm").addEventListener("submit", e=>{
   e.preventDefault();
   const email = document.getElementById("loginEmail").value;
@@ -113,7 +117,6 @@ function calculateFee(amount){
 // ----------------- ADD TRANSACTION -----------------
 document.getElementById("transactionForm").addEventListener("submit", async e=>{
   e.preventDefault();
-
   const type = document.getElementById("type").value;
   const amount = parseFloat(document.getElementById("amount").value);
   const method = document.getElementById("method").value;
@@ -251,7 +254,7 @@ async function setStartingBalance() {
     return;
   }
 
-  await db.collection("balances").doc("main").set({
+  await balancesRef.set({
     gcash: gcash,
     cash: cash,
     profit: 0,
@@ -276,13 +279,12 @@ firebase.auth().onAuthStateChanged(async (user) => {
     return;
   }
 
-  const role = userDoc.data().role;
-  currentUserRole = role;
+  currentUserRole = userDoc.data().role;
 
   document.getElementById("loginSection").style.display = "none";
   document.getElementById("appSection").style.display = "block";
 
-  await applyRoleUI(role);
+  await applyRoleUI(currentUserRole);
   await loadDashboard();
   await loadTransactions();
 });
