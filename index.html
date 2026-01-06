@@ -30,13 +30,13 @@
 
       <!-- Tabs -->
       <div class="tabs">
-        <button class="tablink active" onclick="openTab('dashboard')">Dashboard</button>
-        <button class="tablink" onclick="openTab('cashflow')">Cash-in / Cash-out</button>
-        <button class="tablink" onclick="openTab('rebalance')">Rebalance</button>
+        <button class="tablink active" onclick="openTab('dashboard', this)">Dashboard</button>
+        <button class="tablink" onclick="openTab('cashflow', this)">Cash-in / Cash-out</button>
+        <button class="tablink" onclick="openTab('rebalance', this)">Rebalance</button>
       </div>
 
       <!-- DASHBOARD -->
-      <div id="dashboard" class="tabcontent">
+      <div id="dashboard" class="tabcontent" style="display:block">
         <div class="cards">
           <div class="card">
             <h3>Cash-on-hand</h3>
@@ -80,10 +80,6 @@
                 <option value="cash">Cash</option>
                 <option value="gcash">GCash</option>
               </select>
-            </label>
-
-            <label id="feeLabel">Fee (auto or manual):
-              <input type="number" id="fee" placeholder="Auto" min="0">
             </label>
 
             <label>Notes:
@@ -152,19 +148,13 @@
 
   </div>
 
-  </div>
+  <!-- Firebase CDN -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-analytics-compat.js"></script>
 
-<!-- Firebase App (core) -->
-<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
-<!-- Firebase Auth -->
-<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
-<!-- Firebase Firestore -->
-<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
-<!-- Firebase Analytics -->
-<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-analytics-compat.js"></script>
-
-<!-- Your custom script -->
-<script src="script.js"></script>
-  
+  <!-- Your script -->
+  <script src="script.js"></script>
 </body>
 </html>
