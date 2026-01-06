@@ -46,33 +46,36 @@ async function login(email, password){
 }
 
 
-function applyRoleUI(role) {
-  const dashboard = document.getElementById("dashboardSection");
-  const rebalance = document.getElementById("rebalanceSection");
-  const starting = document.getElementById("startingBalanceSection");
+// -----------------------------
+// ROLE-BASED UI + STARTING BALANCE
+// -----------------------------
+async function applyRoleUI(role) {
+  const dashboard = document.getElementById("dashboard");
+  const rebalance = document.getElementById("rebalance");
   const navDashboard = document.getElementById("navDashboard");
   const navRebalance = document.getElementById("navRebalance");
 
   if (role === "staff") {
+    // Hide owner-only sections
     dashboard.style.display = "none";
     rebalance.style.display = "none";
-    starting.style.display = "none";
     navDashboard.style.display = "none";
     navRebalance.style.display = "none";
   }
 
   if (role === "owner") {
-      // Show main tabs / sections
+    // Show main sections
     dashboard.style.display = "block";
     rebalance.style.display = "block";
     navDashboard.style.display = "inline-block";
     navRebalance.style.display = "inline-block";
 
-     // Check if starting balance exists
-  const configDoc = await db.collection("system").doc("startingBalance").get();
-  if (!configDoc.exists) {
-    // Show modal to set starting balance
-    document.getElementById("startingBalanceModal").style.display = "flex";
+    // CHECK STARTING BALANCE
+    const configDoc = await db.collection("system").doc("startingBalance").get();
+    if (!configDoc.exists) {
+      // Show starting balance modal (owner only)
+      document.getElementById("startingBalanceModal").style.display = "flex";
+    }
   }
 }
 
