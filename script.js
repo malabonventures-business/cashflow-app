@@ -28,23 +28,26 @@ async function login(email, password){
     // Get role from Firestore
     const userDoc = await db.collection("users").doc(uid).get();
     if(userDoc.exists){
-      currentUserRole = userDoc.data().name; // "owner" or "cashier"
+      currentUserRole = userDoc.data().role; // "owner" or "cashier"
 
-      if(currentUserRole === "owner") showOwnerUI();
-      else showStaffUI();
+      document.getElementById("loginSection").style.display = "none";
+      document.getElementById("appSection").style.display = "block";
 
-      loadDashboard();
-      loadTransactions();
+      // Apply role rules
+      await applyRoleUI(currentUserRole);
 
+      // Load data
+      await loadDashboard();
+      await loadTransactions();
     } else {
       alert("No role assigned for this user in Firestore!");
+      auth.signOut();
     }
 
   } catch(error) {
     alert(error.message);
   }
 }
-
 
 // -----------------------------
 // ROLE-BASED UI + STARTING BALANCE
@@ -56,52 +59,35 @@ async function applyRoleUI(role) {
   const navRebalance = document.getElementById("navRebalance");
 
   if (role === "staff") {
-    // Hide owner-only sections
     dashboard.style.display = "none";
     rebalance.style.display = "none";
     navDashboard.style.display = "none";
     navRebalance.style.display = "none";
+    document.getElementById("clearResetBtn").style.display = "none";
   }
 
   if (role === "owner") {
-    // Show main sections
     dashboard.style.display = "block";
     rebalance.style.display = "block";
     navDashboard.style.display = "inline-block";
     navRebalance.style.display = "inline-block";
+    document.getElementById("clearResetBtn").style.display = "block";
 
-    // CHECK STARTING BALANCE
-    const configDoc = await db.collection("system").doc("startingBalance").get();
+    // Check if starting balance exists
+    const configDoc = await db.collection("balances").doc("main").get();
     if (!configDoc.exists) {
-      // Show starting balance modal (owner only)
       document.getElementById("startingBalanceModal").style.display = "flex";
     }
   }
 }
 
-    
-// Login form listener
+// ----------------- Login Form -----------------
 document.getElementById("loginForm").addEventListener("submit", e=>{
   e.preventDefault();
   const email = document.getElementById("loginEmail").value;
   const password = document.getElementById("loginPassword").value;
   login(email, password);
 });
-
-// ----------------- ROLE-BASED UI -----------------
-function showOwnerUI(){
-  document.getElementById("loginSection").style.display = "none";
-  document.getElementById("appSection").style.display = "block";
-  document.getElementById("rebalance").style.display = "block";
-  document.getElementById("clearResetBtn").style.display = "block";
-}
-
-function showStaffUI(){
-  document.getElementById("loginSection").style.display = "none";
-  document.getElementById("appSection").style.display = "block";
-  document.getElementById("rebalance").style.display = "none";
-  document.getElementById("clearResetBtn").style.display = "none";
-}
 
 // ----------------- TAB SWITCH -----------------
 function openTab(tabName, btn){
@@ -136,7 +122,6 @@ document.getElementById("transactionForm").addEventListener("submit", async e=>{
   const fee = calculateFee(amount);
   const profit = type==="cashin"? amount-fee : -amount;
 
-  // Add transaction
   await db.collection("transactions").add({
     date: new Date().toISOString(),
     type, amount, method, fee, profit, notes,
@@ -153,8 +138,8 @@ document.getElementById("transactionForm").addEventListener("submit", async e=>{
   }
 
   document.getElementById("transactionForm").reset();
-  loadDashboard();
-  loadTransactions();
+  await loadDashboard();
+  await loadTransactions();
 });
 
 // ----------------- REBALANCE -----------------
@@ -185,8 +170,8 @@ document.getElementById("rebalanceForm").addEventListener("submit", async e=>{
   });
 
   document.getElementById("rebalanceForm").reset();
-  loadDashboard();
-  loadTransactions();
+  await loadDashboard();
+  await loadTransactions();
 });
 
 // ----------------- LOAD DASHBOARD -----------------
@@ -249,14 +234,14 @@ async function clearAllData(){
   if(confirm("Are you sure you want to clear all transactions and reset balances?")){
     const txSnap = await db.collection("transactions").get();
     txSnap.forEach(doc=>doc.ref.delete());
-    await balancesRef.update({ cash:0, gcash:0, profit:0 });
-    loadDashboard();
-    loadTransactions();
+    await balancesRef.set({ cash:0, gcash:0, profit:0 });
+    await loadDashboard();
+    await loadTransactions();
     alert("All data cleared!");
   }
 }
 
-
+// ----------------- SET STARTING BALANCE -----------------
 async function setStartingBalance() {
   const gcash = Number(document.getElementById("startGCash").value);
   const cash = Number(document.getElementById("startCash").value);
@@ -269,19 +254,22 @@ async function setStartingBalance() {
   await db.collection("balances").doc("main").set({
     gcash: gcash,
     cash: cash,
+    profit: 0,
     initialized: true,
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   });
 
   alert("Starting balance saved!");
+  document.getElementById("startingBalanceModal").style.display = "none";
+
+  await loadDashboard();
 }
 
-
+// ----------------- AUTH STATE -----------------
 firebase.auth().onAuthStateChanged(async (user) => {
   if (!user) return;
 
   const userDoc = await db.collection("users").doc(user.uid).get();
-
   if (!userDoc.exists) {
     alert("No role assigned for this user in Firestore!");
     firebase.auth().signOut();
@@ -291,10 +279,10 @@ firebase.auth().onAuthStateChanged(async (user) => {
   const role = userDoc.data().role;
   currentUserRole = role;
 
-  // ✅ SHOW APP, HIDE LOGIN
   document.getElementById("loginSection").style.display = "none";
   document.getElementById("appSection").style.display = "block";
 
-  // ✅ APPLY ROLE RULES
-  await applyRoleUI(role); // ✅ async/await fixed
+  await applyRoleUI(role);
+  await loadDashboard();
+  await loadTransactions();
 });
