@@ -60,6 +60,38 @@
       </form>
     </div>
 
+    <!-- GCash / Cash Rebalance -->
+<div class="form-container">
+  <h2>Rebalance Cash / GCash</h2>
+  <form id="rebalanceForm">
+    <label>From:
+      <select id="rebalanceFrom" required>
+        <option value="cash">Cash-on-hand</option>
+        <option value="gcash">GCash</option>
+      </select>
+    </label>
+
+    <label>To:
+      <select id="rebalanceTo" required>
+        <option value="cash">Cash-on-hand</option>
+        <option value="gcash">GCash</option>
+      </select>
+    </label>
+
+    <label>Amount:
+      <input type="number" id="rebalanceAmount" required min="1" placeholder="₱0">
+    </label>
+
+    <label>Notes:
+      <input type="text" id="rebalanceNotes" placeholder="Optional">
+    </label>
+
+    <button type="submit">Transfer</button>
+  </form>
+</div>
+
+
+    
     <!-- Transaction Table -->
     <div class="table-container">
       <h2>Transaction History</h2>
