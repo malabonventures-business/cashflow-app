@@ -165,23 +165,6 @@ document.getElementById("transactionForm").addEventListener("submit", async e=>{
 });
 
 
-  // Save transaction
-  await db.collection("transactions").add({
-    date: new Date().toISOString(),
-    type,
-    amount,
-    method,
-    fee,
-    profit,
-    notes,
-    role: currentUserRole
-  });
-
-  document.getElementById("transactionForm").reset();
-  await loadDashboard();
-  await loadTransactions();
-});
-
 // ----------------- REBALANCE -----------------
 document.getElementById("rebalanceForm").addEventListener("submit", async e=>{
   e.preventDefault();
