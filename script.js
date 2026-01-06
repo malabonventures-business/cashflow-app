@@ -35,7 +35,6 @@ async function login(email, password){
       await applyRoleUI(currentUserRole);
       await loadDashboard();
       await loadTransactions();
-
     } else {
       alert("No role assigned for this user in Firestore!");
       auth.signOut();
@@ -47,33 +46,24 @@ async function login(email, password){
 }
 
 // ----------------- ROLE-BASED UI + STARTING BALANCE -----------------
-async function applyRoleUI(role) {
+async function applyRoleUI(role){
   const dashboard = document.getElementById("dashboard");
   const rebalance = document.getElementById("rebalance");
-  const navDashboard = document.getElementById("navDashboard");
-  const navRebalance = document.getElementById("navRebalance");
   const startingModal = document.getElementById("startingBalanceModal");
   const clearBtn = document.getElementById("clearResetBtn");
 
-  if(role === "staff") {
+  if(role === "staff"){
     dashboard.style.display = "none";
     rebalance.style.display = "none";
-    navDashboard.style.display = "none";
-    navRebalance.style.display = "none";
     clearBtn.style.display = "none";
-  }
-
-  if(role === "owner") {
+  } else if(role === "owner"){
     dashboard.style.display = "block";
     rebalance.style.display = "block";
-    navDashboard.style.display = "inline-block";
-    navRebalance.style.display = "inline-block";
     clearBtn.style.display = "block";
 
-        // Check if starting balance exists
     const docSnap = await balancesRef.get();
-    if(!docSnap.exists || !docSnap.data().initialized) {
-      // Auto-fill default starting balance 736.12
+    if(!docSnap.exists || !docSnap.data().initialized){
+      // Auto-fill default starting balance
       document.getElementById("startCash").value = 5320;
       document.getElementById("startGCash").value = 736.12;
       startingModal.style.display = "flex";
@@ -91,12 +81,10 @@ document.getElementById("loginForm").addEventListener("submit", e=>{
 
 // ----------------- TAB SWITCH -----------------
 function openTab(tabName, btn){
-  const tabs = document.querySelectorAll(".tabcontent");
-  tabs.forEach(t=>t.style.display="none");
+  document.querySelectorAll(".tabcontent").forEach(t => t.style.display="none");
   document.getElementById(tabName).style.display="block";
 
-  const buttons = document.querySelectorAll(".tablink");
-  buttons.forEach(b=>b.classList.remove("active"));
+  document.querySelectorAll(".tablink").forEach(b => b.classList.remove("active"));
   btn.classList.add("active");
 }
 
@@ -110,39 +98,37 @@ function calculateFee(amount){
   return 20 + Math.floor((amount-1000)/1000)*20;
 }
 
-// ----------------- ADD TRANSACTION (UPDATED) -----------------
+// ----------------- ADD TRANSACTION -----------------
 document.getElementById("transactionForm").addEventListener("submit", async e=>{
   e.preventDefault();
 
-  const type = document.getElementById("type").value;
+  const type = document.getElementById("type").value.toLowerCase();
   const method = document.getElementById("method").value;
   const notes = document.getElementById("notes").value || "";
   let amount = parseFloat(document.getElementById("amount").value);
   let fee = calculateFee(amount);
   let profit = 0;
 
-  // --- TRANSACTION TYPES ---
-  if(type === "cashin") {
+  // --- Transaction Logic ---
+  if(type === "cashin"){
     profit = fee;
     if(method==="cash") await balancesRef.update({ cash: firebase.firestore.FieldValue.increment(amount-fee), profit: firebase.firestore.FieldValue.increment(fee) });
     else await balancesRef.update({ gcash: firebase.firestore.FieldValue.increment(amount-fee), profit: firebase.firestore.FieldValue.increment(fee) });
 
-  } else if(type === "cashout") {
+  } else if(type === "cashout"){
     profit = -amount;
     if(method==="cash") await balancesRef.update({ cash: firebase.firestore.FieldValue.increment(-amount) });
     else await balancesRef.update({ gcash: firebase.firestore.FieldValue.increment(-amount) });
 
-  } else if(type === "loading") {
-    const extraCost = 2; // extra GCash deduction
-    profit = amount - (amount + extraCost); // negative if GCash used
+  } else if(type === "loading"){
+    const extraCost = 2; // GCash deduction
+    profit = amount - (amount + extraCost); // amount customer pays - GCash deducted
+    if(method==="gcash") await balancesRef.update({ gcash: firebase.firestore.FieldValue.increment(-(amount+extraCost)), profit: firebase.firestore.FieldValue.increment(extraCost) });
+    else await balancesRef.update({ cash: firebase.firestore.FieldValue.increment(-(amount+extraCost)), profit: firebase.firestore.FieldValue.increment(extraCost) });
 
-    if(method==="gcash") await balancesRef.update({ gcash: firebase.firestore.FieldValue.increment(-(amount + extraCost)), profit: firebase.firestore.FieldValue.increment(extraCost) });
-    else await balancesRef.update({ cash: firebase.firestore.FieldValue.increment(-(amount + extraCost)), profit: firebase.firestore.FieldValue.increment(extraCost) });
-
-  } else if(type === "billspayment") {
+  } else if(type === "billspayment"){
     const totalDeduction = amount + fee;
     profit = fee;
-
     if(method==="gcash") await balancesRef.update({ gcash: firebase.firestore.FieldValue.increment(-totalDeduction), profit: firebase.firestore.FieldValue.increment(fee) });
     else await balancesRef.update({ cash: firebase.firestore.FieldValue.increment(-totalDeduction), profit: firebase.firestore.FieldValue.increment(fee) });
   }
@@ -164,7 +150,6 @@ document.getElementById("transactionForm").addEventListener("submit", async e=>{
   await loadTransactions();
 });
 
-
 // ----------------- REBALANCE -----------------
 document.getElementById("rebalanceForm").addEventListener("submit", async e=>{
   e.preventDefault();
@@ -175,11 +160,8 @@ document.getElementById("rebalanceForm").addEventListener("submit", async e=>{
 
   if(from===to){ alert("Cannot transfer to same account!"); return; }
 
-  if(from==="cash" && to==="gcash"){
-    await balancesRef.update({ cash: firebase.firestore.FieldValue.increment(-amount), gcash: firebase.firestore.FieldValue.increment(amount) });
-  } else if(from==="gcash" && to==="cash"){
-    await balancesRef.update({ gcash: firebase.firestore.FieldValue.increment(-amount), cash: firebase.firestore.FieldValue.increment(amount) });
-  }
+  if(from==="cash" && to==="gcash") await balancesRef.update({ cash: firebase.firestore.FieldValue.increment(-amount), gcash: firebase.firestore.FieldValue.increment(amount) });
+  if(from==="gcash" && to==="cash") await balancesRef.update({ gcash: firebase.firestore.FieldValue.increment(-amount), cash: firebase.firestore.FieldValue.increment(amount) });
 
   await db.collection("transactions").add({
     date: new Date().toISOString(),
@@ -201,10 +183,10 @@ document.getElementById("rebalanceForm").addEventListener("submit", async e=>{
 async function loadDashboard(){
   const snap = await balancesRef.get();
   if(!snap.exists){
-    // auto initialize starting balance
-    await balancesRef.set({ cash:736.12, gcash:0, profit:0, initialized:true });
-    document.getElementById("dashCash").innerText = "₱736.12";
-    document.getElementById("dashGcash").innerText = "₱0";
+    // Auto-initialize starting balance
+    await balancesRef.set({ cash:5320, gcash:736.12, profit:0, initialized:true });
+    document.getElementById("dashCash").innerText = "₱5320";
+    document.getElementById("dashGcash").innerText = "₱736.12";
     document.getElementById("dashProfit").innerText = "₱0";
     return;
   }
@@ -214,7 +196,7 @@ async function loadDashboard(){
   document.getElementById("dashGcash").innerText = `₱${data.gcash || 0}`;
   document.getElementById("dashProfit").innerText = `₱${data.profit || 0}`;
 
-  // Totals
+  // Compute totals
   const txSnap = await db.collection("transactions").get();
   let daily=0, weekly=0, monthly=0, yearly=0;
   const now = new Date();
@@ -264,7 +246,7 @@ async function clearAllData(){
   if(confirm("Are you sure you want to clear all transactions and reset balances?")){
     const txSnap = await db.collection("transactions").get();
     txSnap.forEach(doc=>doc.ref.delete());
-    await balancesRef.set({ cash:736.12, gcash:0, profit:0, initialized:true });
+    await balancesRef.set({ cash:5320, gcash:736.12, profit:0, initialized:true });
     await loadDashboard();
     await loadTransactions();
     alert("All data cleared!");
@@ -272,9 +254,9 @@ async function clearAllData(){
 }
 
 // ----------------- SET STARTING BALANCE -----------------
-async function setStartingBalance() {
-  const gcash = Number(document.getElementById("startGCash").value);
+async function setStartingBalance(){
   const cash = Number(document.getElementById("startCash").value);
+  const gcash = Number(document.getElementById("startGCash").value);
 
   if(cash < 0 || gcash < 0){ alert("Invalid amount"); return; }
 
@@ -288,12 +270,11 @@ async function setStartingBalance() {
 
   alert("Starting balance saved!");
   document.getElementById("startingBalanceModal").style.display = "none";
-
   await loadDashboard();
 }
 
 // ----------------- AUTH STATE -----------------
-firebase.auth().onAuthStateChanged(async (user) => {
+firebase.auth().onAuthStateChanged(async user=>{
   if(!user) return;
 
   const userDoc = await db.collection("users").doc(user.uid).get();
@@ -304,7 +285,6 @@ firebase.auth().onAuthStateChanged(async (user) => {
   }
 
   currentUserRole = userDoc.data().role;
-
   document.getElementById("loginSection").style.display = "none";
   document.getElementById("appSection").style.display = "block";
 
