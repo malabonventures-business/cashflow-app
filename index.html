@@ -5,6 +5,35 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cashflow System</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    /* Quick styles for modal overlay */
+    #startingBalanceModal {
+      display: none;
+      position: fixed;
+      top:0; left:0;
+      width:100%; height:100%;
+      background: rgba(0,0,0,0.6);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    #startingBalanceModal .modal-content {
+      background: #fff;
+      padding: 30px;
+      border-radius: 10px;
+      width: 350px;
+      text-align: center;
+    }
+    #startingBalanceModal input {
+      width: 100%;
+      padding: 5px;
+      margin: 10px 0;
+    }
+    #startingBalanceModal button {
+      padding: 10px 20px;
+      margin-top: 10px;
+    }
+  </style>
 </head>
 <body>
   <div class="container">
@@ -25,7 +54,6 @@
 
     <!-- MAIN APP SECTION -->
     <div id="appSection" style="display:none;">
-
       <h1>💼 Cashflow System</h1>
 
       <!-- Tabs -->
@@ -143,22 +171,21 @@
       </div>
 
       <button id="clearResetBtn" style="display:none;" onclick="clearAllData()">Clear / Reset All (Owner only)</button>
-
     </div>
 
     <!-- STARTING BALANCE MODAL (OWNER ONLY) -->
-    <div id="startingBalanceModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); justify-content:center; align-items:center; z-index:1000;">
-      <div style="background:#fff; padding:30px; border-radius:10px; width:350px; text-align:center;">
+    <div id="startingBalanceModal">
+      <div class="modal-content">
         <h2>Set Starting Balance</h2>
         <label>
           Starting Cash-on-hand:
-          <input type="number" id="startCash" min="0" placeholder="₱0" style="width:100%; padding:5px; margin:10px 0;">
+          <input type="number" id="startCash" min="0" placeholder="₱0">
         </label>
         <label>
           Starting GCash Balance:
-          <input type="number" id="startGCash" min="0" placeholder="₱0" style="width:100%; padding:5px; margin:10px 0;">
+          <input type="number" id="startGCash" min="0" placeholder="₱0">
         </label>
-        <button onclick="setStartingBalance()" style="padding:10px 20px; margin-top:10px;">Save Starting Balance</button>
+        <button onclick="setStartingBalance()">Save Starting Balance</button>
       </div>
     </div>
 
