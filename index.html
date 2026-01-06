@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cashflow App</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>💵 Cashflow Manager</h1>
+
+    <!-- Summary Cards -->
+    <div class="cards">
+      <div class="card">
+        <h3>Cash-on-hand</h3>
+        <p id="cashBalance">₱0</p>
+      </div>
+      <div class="card">
+        <h3>GCash Balance</h3>
+        <p id="gcashBalance">₱0</p>
+      </div>
+      <div class="card">
+        <h3>Total Profit</h3>
+        <p id="totalProfit">₱0</p>
+      </div>
+    </div>
+
+    <!-- Transaction Form -->
+    <div class="form-container">
+      <h2>Add Transaction</h2>
+      <form id="transactionForm">
+        <label>Type:
+          <select id="type" required>
+            <option value="cashin">Cash-in</option>
+            <option value="cashout">Cash-out</option>
+          </select>
+        </label>
+
+        <label>Amount:
+          <input type="number" id="amount" required min="1" placeholder="₱0">
+        </label>
+
+        <label>Payment Method:
+          <select id="method" required>
+            <option value="cash">Cash</option>
+            <option value="gcash">GCash</option>
+          </select>
+        </label>
+
+        <label>Fee (auto-tiered or manual):
+          <input type="number" id="fee" placeholder="Auto" min="0">
+        </label>
+
+        <label>Notes:
+          <input type="text" id="notes" placeholder="Optional">
+        </label>
+
+        <button type="submit">Add Transaction</button>
+      </form>
+    </div>
+
+    <!-- Transaction Table -->
+    <div class="table-container">
+      <h2>Transaction History</h2>
+      <table id="transactionTable">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Type</th>
+            <th>Amount</th>
+            <th>Method</th>
+            <th>Fee</th>
+            <th>Profit</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Transactions go here -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
