@@ -148,22 +148,21 @@
     </div>
 
     <!-- STARTING BALANCE (OWNER ONLY) -->
-<div id="startingBalance" class="tabcontent">
-  <div class="form-container">
+<div id="startingBalance" class="modal" style="display:none;">
+  <div class="modal-content">
     <h2>Set Starting Balance (Owner Only)</h2>
 
     <label>Starting Cash-on-hand:
-      <input type="number" id="startCash" min="0" placeholder="₱0">
+      <input type="number" id="startCash" min="0">
     </label>
 
     <label>Starting GCash Balance:
-      <input type="number" id="startGCash" min="0" placeholder="₱0">
+      <input type="number" id="startGCash" min="0">
     </label>
 
-    <button onclick="setStartingBalance()">Save Starting Balance</button>
+    <button onclick="setStartingBalance()">Save</button>
   </div>
 </div>
-
 
 
       
