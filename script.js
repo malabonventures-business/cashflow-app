@@ -46,27 +46,33 @@ async function login(email, password){
 }
 
 // ----------------- ROLE-BASED UI + STARTING BALANCE -----------------
-async function applyRoleUI(role){
+async function applyRoleUI(role) {
   const dashboard = document.getElementById("dashboard");
   const rebalance = document.getElementById("rebalance");
-  const startingModal = document.getElementById("startingBalanceModal");
+  const navDashboard = document.getElementById("navDashboard");
+  const navRebalance = document.getElementById("navRebalance");
   const clearBtn = document.getElementById("clearResetBtn");
+  const ownerTab = document.getElementById("ownerSettingsTab");
 
-  if(role === "staff"){
+  if(role === "staff") {
     dashboard.style.display = "none";
     rebalance.style.display = "none";
+    navDashboard.style.display = "none";
+    navRebalance.style.display = "none";
     clearBtn.style.display = "none";
-  } else if(role === "owner"){
+    if(ownerTab) ownerTab.style.display = "none";
+  }
+
+  if(role === "owner") {
     dashboard.style.display = "block";
     rebalance.style.display = "block";
+    navDashboard.style.display = "inline-block";
+    navRebalance.style.display = "inline-block";
     clearBtn.style.display = "block";
+    if(ownerTab) ownerTab.style.display = "inline-block";
+  }
+}
 
-    const docSnap = await balancesRef.get();
-    if(!docSnap.exists || !docSnap.data().initialized){
-      // Auto-fill default starting balance
-      document.getElementById("startCash").value = 5320;
-      document.getElementById("startGCash").value = 736.12;
-      startingModal.style.display = "flex";
     }
   }
 }
