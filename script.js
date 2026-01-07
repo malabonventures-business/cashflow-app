@@ -49,38 +49,54 @@ async function login(email, password){
 function applyRoleUI(role) {
   const dashboard = document.getElementById("dashboard");
   const rebalance = document.getElementById("rebalance");
-  const cashInOut = document.getElementById("cashflow"); // staff tab
+  const cashInOut = document.getElementById("cashflow");
   const clearBtn = document.getElementById("clearResetBtn");
-  const profitSection = document.getElementById("profitSection"); // profits display
+  const ownerTab = document.getElementById("ownerSettingsTab");
+  const profitSection = document.getElementById("profitSection");
 
-  // SAFETY CHECK
   if (!dashboard) return;
 
-  // DEFAULT: hide sensitive parts
+  // ===== DEFAULT STATE (HIDE SENSITIVE) =====
+  dashboard.style.display = "block";
   if (rebalance) rebalance.style.display = "none";
-  if (clearBtn) clearBtn.style.display = "none";
   if (profitSection) profitSection.style.display = "none";
   if (cashInOut) cashInOut.style.display = "none";
+  if (clearBtn) clearBtn.style.display = "none";
+  if (ownerTab) ownerTab.style.display = "none";
 
-  // DASHBOARD ALWAYS VISIBLE
-  dashboard.style.display = "block";
-
+  // ===== STAFF RULES =====
   if (role === "staff") {
-    // STAFF RULES
-    if (cashInOut) cashInOut.style.display = "block"; // cash in / out only
-    // profit hidden by default
+    if (cashInOut) cashInOut.style.display = "block";
+    // dashboard visible, no profit
   }
 
+  // ===== OWNER RULES =====
   if (role === "owner") {
-    // OWNER RULES
+    if (cashInOut) cashInOut.style.display = "block";
     if (rebalance) rebalance.style.display = "block";
-    if (clearBtn) clearBtn.style.display = "block";
     if (profitSection) profitSection.style.display = "block";
+    if (clearBtn) clearBtn.style.display = "inline-block";
+    if (ownerTab) ownerTab.style.display = "inline-block";
   }
 }
 
 
- 
+// ------------------ clear btn lock -------------
+function confirmClear() {
+  const confirm1 = confirm("⚠️ This will RESET ALL DATA.\nAre you sure?");
+  if (!confirm1) return;
+
+  const confirm2 = prompt("Type RESET to confirm:");
+  if (confirm2 !== "RESET") {
+    alert("Reset cancelled.");
+    return;
+  }
+
+  clearAllData();
+}
+
+
+
 // ----------------- LOGIN FORM -----------------
 document.getElementById("loginForm").addEventListener("submit", e=>{
   e.preventDefault();
@@ -88,6 +104,8 @@ document.getElementById("loginForm").addEventListener("submit", e=>{
   const password = document.getElementById("loginPassword").value;
   login(email, password);
 });
+
+
 
 // ----------------- TAB SWITCH -----------------
 function openTab(tabName, btn){
@@ -98,6 +116,8 @@ function openTab(tabName, btn){
   btn.classList.add("active");
 }
 
+
+
 // ----------------- AUTO FEE CALC -----------------
 function calculateFee(amount){
   if(amount < 100) return 5;
@@ -107,6 +127,8 @@ function calculateFee(amount){
   if(amount < 2000) return 40;
   return 20 + Math.floor((amount-1000)/1000)*20;
 }
+
+
 
 // ----------------- ADD TRANSACTION -----------------
 document.getElementById("transactionForm").addEventListener("submit", async e=>{
@@ -119,6 +141,8 @@ document.getElementById("transactionForm").addEventListener("submit", async e=>{
   let fee = calculateFee(amount);
   let profit = 0;
 
+
+  
   // --- Transaction Logic ---
   if(type === "cashin"){
     profit = fee;
@@ -143,6 +167,8 @@ document.getElementById("transactionForm").addEventListener("submit", async e=>{
     else await balancesRef.update({ cash: firebase.firestore.FieldValue.increment(-totalDeduction), profit: firebase.firestore.FieldValue.increment(fee) });
   }
 
+
+  
   // Save transaction
   await db.collection("transactions").add({
     date: new Date().toISOString(),
@@ -159,6 +185,8 @@ document.getElementById("transactionForm").addEventListener("submit", async e=>{
   await loadDashboard();
   await loadTransactions();
 });
+
+
 
 // ----------------- REBALANCE -----------------
 document.getElementById("rebalanceForm").addEventListener("submit", async e=>{
@@ -188,6 +216,8 @@ document.getElementById("rebalanceForm").addEventListener("submit", async e=>{
   await loadDashboard();
   await loadTransactions();
 });
+
+
 
 // ----------------- LOAD DASHBOARD -----------------
 async function loadDashboard(){
@@ -228,6 +258,8 @@ async function loadDashboard(){
   document.getElementById("yearlyTotal").innerText = `₱${yearly}`;
 }
 
+
+
 // ----------------- LOAD TRANSACTIONS -----------------
 async function loadTransactions(){
   const txSnap = await db.collection("transactions").get();
@@ -251,6 +283,8 @@ async function loadTransactions(){
   });
 }
 
+
+
 // ----------------- CLEAR / RESET -----------------
 async function clearAllData(){
   if(confirm("Are you sure you want to clear all transactions and reset balances?")){
@@ -262,6 +296,8 @@ async function clearAllData(){
     alert("All data cleared!");
   }
 }
+
+
 
 // ----------------- SET STARTING BALANCE -----------------
 async function setStartingBalance(){
@@ -282,6 +318,8 @@ async function setStartingBalance(){
   document.getElementById("startingBalanceModal").style.display = "none";
   await loadDashboard();
 }
+
+
 
 // ----------------- AUTH STATE -----------------
 firebase.auth().onAuthStateChanged(async user=>{
