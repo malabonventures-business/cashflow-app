@@ -48,7 +48,7 @@
       </div>
 
       <!-- DASHBOARD -->
-      <button id="clearResetBtn" onclick="confirmClear()">RESET SYSTEM (Owner only)</button>
+     
       <div id="dashboard" class="tabcontent" style="display:block">
         <div class="cards">
           <div class="card">
@@ -163,8 +163,25 @@
 
     <button type="submit">Update Balances</button>
   </form>
-</div>
+          <!-- DANGER ZONE -->
+  <div style="border:2px solid #e74c3c; padding:15px; border-radius:10px;">
+    <h3 style="color:#e74c3c;">⚠️ Danger Zone</h3>
+    <p>This will permanently reset all balances and transactions.</p>
 
+    <button id="clearResetBtn"
+      onclick="confirmClear()"
+      style="
+        background:#e74c3c;
+        color:white;
+        border:none;
+        padding:10px 16px;
+        border-radius:8px;
+        cursor:pointer;
+      ">
+       RESET SYSTEM
+          </button>
+        </div>
+      </div>
 
    
 
