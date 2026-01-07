@@ -8,17 +8,20 @@
   body { font-family: Arial, sans-serif; background: #f0f2f5; margin:0; padding:0; }
   .container { width: 95%; max-width:1200px; margin:20px auto; }
   h1,h2,h3,h4 { margin:5px 0; }
-  button { cursor:pointer; }
-  .tabs { display:flex; margin:20px 0; gap:5px; }
+  button { cursor:pointer; transition: background 0.2s; }
+  .tabs { display:flex; margin:20px 0; gap:5px; flex-wrap:wrap; }
   .tablink { padding:10px 20px; border:none; border-radius:6px; background:#ddd; color:#333; font-weight:bold; }
   .tablink.active { background:#3498db; color:#fff; }
+  .tablink:hover:not(.active) { background:#bbb; }
   .tabcontent { display:none; }
   .cards { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px; }
-  .card { background:white; flex:1 1 150px; padding:15px; border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,0.1); }
+  .card { background:white; flex:1 1 150px; padding:15px; border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,0.1); transition: transform 0.1s, box-shadow 0.1s; }
+  .card:hover { transform: translateY(-2px); box-shadow:0 4px 8px rgba(0,0,0,0.15); }
   .form-container { background:white; padding:15px; border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,0.1); margin-bottom:20px; }
   table { width:100%; border-collapse:collapse; background:white; }
   th,td { padding:8px; border:1px solid #ccc; text-align:center; }
   #logoutBtn { background:#e74c3c; color:white; border:none; padding:6px 12px; border-radius:6px; }
+  #profitSection { display:none; }
 </style>
 </head>
 <body>
@@ -62,8 +65,16 @@
       <div class="card"><h4>Monthly Total</h4><p id="monthlyTotal">₱0</p></div>
       <div class="card"><h4>Yearly Total</h4><p id="yearlyTotal">₱0</p></div>
     </div>
-  </div>
+    <!-- Inside DASHBOARD cards, add Total Balance -->
+    <div class="cards">
+      <div class="card"><h3>Cash-on-hand</h3><p id="dashCash">₱0</p></div>
+      <div class="card"><h3>GCash Balance</h3><p id="dashGcash">₱0</p></div>
+      <div class="card" id="profitSection"><h3>Total Profit</h3><p id="dashProfit">₱0</p></div>
+      <div class="card"><h3>Total Balance</h3><p id="dashTotal">₱0</p></div>
+    </div>
+  </div>   
 
+  
   <!-- CASHFLOW -->
   <div id="cashflow" class="tabcontent">
     <div class="form-container">
@@ -148,6 +159,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-analytics-compat.js"></script>
 
 <script>
+// ---------- Firebase Init ----------
 const firebaseConfig = {
   apiKey: "AIzaSyDF5BuG7cfbLhyIWJkgzKVNmXH9KtB4_AQ",
   authDomain: "cashflowsystem-e8597.firebaseapp.com",
@@ -163,7 +175,7 @@ const db = firebase.firestore();
 const balancesRef = db.collection("balances").doc("main");
 let currentUserRole = "";
 
-// --- LOGIN ---
+// ---------- LOGIN ----------
 async function login(email,password){
   try{
     const userCredential = await auth.signInWithEmailAndPassword(email,password);
@@ -179,7 +191,7 @@ async function login(email,password){
   }catch(e){ alert(e.message); }
 }
 
-// --- ROLE UI ---
+// ---------- ROLE UI ----------
 function applyRoleUI(role){
   const cashInOut = document.getElementById("cashflow");
   const rebalance = document.getElementById("rebalance");
@@ -191,13 +203,13 @@ function applyRoleUI(role){
   if(role==="owner"){ cashInOut.style.display="block"; rebalance.style.display="block"; profitSection.style.display="block"; ownerTab.style.display="inline-block"; clearBtn.style.display="inline-block"; }
 }
 
-// --- LOGIN FORM ---
+// ---------- LOGIN FORM ----------
 document.getElementById("loginForm").addEventListener("submit", e=>{
   e.preventDefault();
   login(document.getElementById("loginEmail").value, document.getElementById("loginPassword").value);
 });
 
-// --- TABS ---
+// ---------- TABS ----------
 function openTab(tab,btn){
   document.querySelectorAll(".tabcontent").forEach(t=>t.style.display="none");
   document.getElementById(tab).style.display="block";
@@ -205,7 +217,7 @@ function openTab(tab,btn){
   btn.classList.add("active");
 }
 
-// --- TRANSACTION TABLE ---
+// ---------- TRANSACTION TABLE ----------
 function setupTransactionsListener(){
   db.collection("transactions").orderBy("date","desc").onSnapshot(snap=>{
     const tbody=document.querySelector("#transactionTable tbody"); tbody.innerHTML="";
@@ -218,15 +230,20 @@ function setupTransactionsListener(){
   });
 }
 
-// --- DASHBOARD REALTIME ---
+// ---------- DASHBOARD REALTIME ----------
 function setupDashboardRealtime(){
   balancesRef.onSnapshot(snap=>{
-    if(!snap.exists) return;
-    const data = snap.data();
-    document.getElementById("dashCash").innerText = `₱${data.cash||0}`;
-    document.getElementById("dashGcash").innerText = `₱${data.gcash||0}`;
-    document.getElementById("dashProfit").innerText = `₱${data.profit||0}`;
-  });
+  if(!snap.exists) return;
+  const data = snap.data();
+  const cash = data.cash||0;
+  const gcash = data.gcash||0;
+  document.getElementById("dashCash").innerText = `₱${cash}`;
+  document.getElementById("dashGcash").innerText = `₱${gcash}`;
+  document.getElementById("dashProfit").innerText = `₱${data.profit||0}`;
+  document.getElementById("dashTotal").innerText = `₱${cash + gcash}`;
+});
+
+
   db.collection("transactions").onSnapshot(snap=>{
     let daily=0,weekly=0,monthly=0,yearly=0;
     const now=new Date();
@@ -246,7 +263,7 @@ function setupDashboardRealtime(){
   });
 }
 
-// --- ADD TRANSACTION ---
+// ---------- TRANSACTION & REBALANCE FORM ----------
 function calculateFee(amount){ if(amount<100)return 5; if(amount<500)return 10; if(amount<1000)return 20; if(amount<1500)return 30; if(amount<2000)return 40; return 20+Math.floor((amount-1000)/1000)*20; }
 document.getElementById("transactionForm").addEventListener("submit", async e=>{
   e.preventDefault();
@@ -263,8 +280,6 @@ document.getElementById("transactionForm").addEventListener("submit", async e=>{
   await db.collection("transactions").add({date:new Date().toISOString(),type,amount,method,fee,profit,notes,role:currentUserRole});
   document.getElementById("transactionForm").reset();
 });
-
-// --- REBALANCE ---
 document.getElementById("rebalanceForm").addEventListener("submit", async e=>{
   e.preventDefault();
   const from=document.getElementById("rebalanceFrom").value;
@@ -278,16 +293,14 @@ document.getElementById("rebalanceForm").addEventListener("submit", async e=>{
   document.getElementById("rebalanceForm").reset();
 });
 
-// --- MANUAL BALANCE (OWNER) ---
+// ---------- MANUAL BALANCE & CLEAR ----------
 document.getElementById("manualBalanceForm").addEventListener("submit", async e=>{
   e.preventDefault();
-  const cash = parseFloat(document.getElementById("manualCash").value)||0;
-  const gcash = parseFloat(document.getElementById("manualGCash").value)||0;
+  const cash=parseFloat(document.getElementById("manualCash").value)||0;
+  const gcash=parseFloat(document.getElementById("manualGCash").value)||0;
   await balancesRef.set({cash,gcash,profit:0,initialized:true});
   alert("Balances updated!");
 });
-
-// --- CLEAR RESET ---
 function confirmClear(){
   if(!confirm("⚠️ This will RESET ALL DATA. Are you sure?")) return;
   const confirm2 = prompt("Type RESET to confirm:");
@@ -301,10 +314,16 @@ async function clearAllData(){
   alert("All data cleared!");
 }
 
-// --- LOGOUT ---
-function logout(){ auth.signOut(); document.getElementById("appSection").style.display="none"; document.getElementById("loginSection").style.display="block"; document.getElementById("loginEmail").value=""; document.getElementById("loginPassword").value=""; }
+// ---------- LOGOUT ----------
+function logout(){
+  auth.signOut();
+  document.getElementById("appSection").style.display="none";
+  document.getElementById("loginSection").style.display="block";
+  document.getElementById("loginEmail").value="";
+  document.getElementById("loginPassword").value="";
+}
 
-// --- AUTH STATE ---
+// ---------- AUTH STATE ----------
 firebase.auth().onAuthStateChanged(user=>{
   if(user){
     db.collection("users").doc(user.uid).get().then(doc=>{
@@ -319,6 +338,5 @@ firebase.auth().onAuthStateChanged(user=>{
   }
 });
 </script>
-
 </body>
 </html>
