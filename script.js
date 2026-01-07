@@ -246,7 +246,10 @@ async function clearAllData() {
   txSnap.forEach(doc => deletePromises.push(doc.ref.delete()));
   await Promise.all(deletePromises);
 
-  await balancesRef.set({ cash: 5320, gcash: 736.12, profit: 0, initialized: true });
+  const manualCash = Number(document.getElementById("manualCash").value);
+  const manualGCash = Number(document.getElementById("manualGCash").value);
+  await balancesRef.set({ cash: manualCash, gcash: manualGCash, profit:0, initialized:true });
+
   alert("All data cleared!");
 }
 
