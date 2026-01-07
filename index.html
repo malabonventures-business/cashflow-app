@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="style.css">
   <link rel="icon" href="data:,">
   <style>
-    /* Optional: basic styles for demo */
     body { font-family: Arial, sans-serif; margin:0; padding:0; }
     .container { padding:20px; max-width:1200px; margin:auto; }
     .tabs { margin-top:20px; }
@@ -182,14 +181,7 @@
           <p>This will permanently reset all balances and transactions.</p>
           <button id="clearResetBtn"
             onclick="clearAllData()"
-            style="
-              background:#e74c3c;
-              color:white;
-              border:none;
-              padding:10px 16px;
-              border-radius:8px;
-              cursor:pointer;
-            ">
+            style="background:#e74c3c; color:white; border:none; padding:10px 16px; border-radius:8px; cursor:pointer;">
             RESET SYSTEM
           </button>
         </div>
@@ -203,88 +195,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-analytics-compat.js"></script>
 
-  <!-- Script -->
-  <script>
-    // Initialize Firebase here
-    const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_AUTH_DOMAIN",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_STORAGE_BUCKET",
-      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-      appId: "YOUR_APP_ID",
-      measurementId: "YOUR_MEASUREMENT_ID"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
-    const balancesRef = db.collection("balances").doc("main");
-
-    // ----------------- TAB NAVIGATION -----------------
-    function openTab(tabName, elm) {
-      document.querySelectorAll('.tabcontent').forEach(tc => tc.style.display='none');
-      document.querySelectorAll('.tablink').forEach(tb => tb.classList.remove('active'));
-      document.getElementById(tabName).style.display='block';
-      elm.classList.add('active');
-    }
-
-    // ----------------- DASHBOARD REAL-TIME -----------------
-    function setupDashboardRealtime() {
-      balancesRef.onSnapshot((snap) => {
-        if (!snap.exists) return;
-        const data = snap.data();
-        document.getElementById("dashCash").innerText = `₱${data.cash || 0}`;
-        document.getElementById("dashGcash").innerText = `₱${data.gcash || 0}`;
-        document.getElementById("dashProfit").innerText = `₱${data.profit || 0}`;
-      });
-
-      db.collection("transactions").onSnapshot((snap) => {
-        let daily=0, weekly=0, monthly=0, yearly=0;
-        const now = new Date();
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(now.getDate()-7);
-
-        snap.forEach(doc=>{
-          const tx = doc.data();
-          if(tx.type==="rebalance") return;
-          const txDate = new Date(tx.date);
-          if(txDate.toDateString()===now.toDateString()) daily+=tx.profit;
-          if(txDate>=sevenDaysAgo) weekly+=tx.profit;
-          if(txDate.getMonth()===now.getMonth() && txDate.getFullYear()===now.getFullYear()) monthly+=tx.profit;
-          if(txDate.getFullYear()===now.getFullYear()) yearly+=tx.profit;
-        });
-
-        document.getElementById("dailyTotal").innerText = `₱${daily}`;
-        document.getElementById("weeklyTotal").innerText = `₱${weekly}`;
-        document.getElementById("monthlyTotal").innerText = `₱${monthly}`;
-        document.getElementById("yearlyTotal").innerText = `₱${yearly}`;
-      });
-    }
-
-    // ----------------- CLEAR / RESET -----------------
-    async function clearAllData() {
-      if (!confirm("Are you sure you want to clear all transactions and reset balances?")) return;
-
-      const txSnap = await db.collection("transactions").get();
-      const deletePromises = [];
-      txSnap.forEach(doc=>deletePromises.push(doc.ref.delete()));
-      await Promise.all(deletePromises);
-
-      await balancesRef.set({ cash:5320, gcash:736.12, profit:0, initialized:true });
-
-      alert("All data cleared!"); // Dashboard will auto-update
-    }
-
-    // ----------------- LOGIN / LOGOUT -----------------
-    function logout() {
-      auth.signOut();
-      document.getElementById('appSection').style.display='none';
-      document.getElementById('loginSection').style.display='block';
-    }
-
-    // ----------------- INITIALIZE -----------------
-    setupDashboardRealtime();
-  </script>
+  <!-- SCRIPT -->
   <script src="script.js"></script>
 </body>
 </html>
