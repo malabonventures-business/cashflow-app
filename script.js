@@ -49,7 +49,7 @@ async function login(email, password){
 function applyRoleUI(role) {
   const dashboard = document.getElementById("dashboard");
   const rebalance = document.getElementById("rebalance");
-  const cashInOut = document.getElementById("cashInOut"); // staff tab
+  const cashInOut = document.getElementById("cashflow"); // staff tab
   const clearBtn = document.getElementById("clearResetBtn");
   const profitSection = document.getElementById("profitSection"); // profits display
 
