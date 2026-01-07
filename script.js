@@ -46,32 +46,39 @@ async function login(email, password){
 }
 
 // ----------------- ROLE-BASED UI + STARTING BALANCE -----------------
-async function applyRoleUI(role) {
+function applyRoleUI(role) {
   const dashboard = document.getElementById("dashboard");
   const rebalance = document.getElementById("rebalance");
-  const navDashboard = document.getElementById("navDashboard");
-  const navRebalance = document.getElementById("navRebalance");
+  const cashInOut = document.getElementById("cashInOut"); // staff tab
   const clearBtn = document.getElementById("clearResetBtn");
-  const ownerTab = document.getElementById("ownerSettingsTab");
+  const profitSection = document.getElementById("profitSection"); // profits display
 
-  if(role === "staff") {
-    dashboard.style.display = "none";
-    rebalance.style.display = "none";
-    navDashboard.style.display = "none";
-    navRebalance.style.display = "none";
-    clearBtn.style.display = "none";
-    if(ownerTab) ownerTab.style.display = "none";
+  // SAFETY CHECK
+  if (!dashboard) return;
+
+  // DEFAULT: hide sensitive parts
+  if (rebalance) rebalance.style.display = "none";
+  if (clearBtn) clearBtn.style.display = "none";
+  if (profitSection) profitSection.style.display = "none";
+  if (cashInOut) cashInOut.style.display = "none";
+
+  // DASHBOARD ALWAYS VISIBLE
+  dashboard.style.display = "block";
+
+  if (role === "staff") {
+    // STAFF RULES
+    if (cashInOut) cashInOut.style.display = "block"; // cash in / out only
+    // profit hidden by default
   }
 
-  if(role === "owner") {
-    dashboard.style.display = "block";
-    rebalance.style.display = "block";
-    navDashboard.style.display = "inline-block";
-    navRebalance.style.display = "inline-block";
-    clearBtn.style.display = "block";
-    if(ownerTab) ownerTab.style.display = "inline-block";
+  if (role === "owner") {
+    // OWNER RULES
+    if (rebalance) rebalance.style.display = "block";
+    if (clearBtn) clearBtn.style.display = "block";
+    if (profitSection) profitSection.style.display = "block";
   }
 }
+
 
  
 // ----------------- LOGIN FORM -----------------
