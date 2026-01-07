@@ -5,143 +5,385 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>💼 Cashflow System</title>
 <style>
-body{font-family:Arial;background:#f0f2f5;margin:0}
-.container{width:95%;max-width:1200px;margin:20px auto}
-.tabs{display:flex;gap:6px;margin:15px 0}
-.tablink{padding:10px 18px;border:none;border-radius:8px;background:#ddd;font-weight:bold}
-.tablink.active{background:#3498db;color:#fff}
-.tabcontent{display:none}
-.cards{display:flex;gap:10px;flex-wrap:wrap}
-.card{background:#fff;padding:15px;border-radius:10px;flex:1;box-shadow:0 2px 5px rgba(0,0,0,.1)}
-button{cursor:pointer}
-#logoutBtn{background:#e74c3c;color:#fff;border:none;padding:6px 12px;border-radius:6px}
-#profitSection{display:none}
-table{width:100%;border-collapse:collapse;background:#fff}
-th,td{border:1px solid #ccc;padding:6px;text-align:center}
+  body { font-family: Arial, sans-serif; background: #f0f2f5; margin:0; padding:0; }
+  .container { width: 95%; max-width:1200px; margin:20px auto; }
+  h1,h2,h3,h4 { margin:5px 0; }
+  button { cursor:pointer; transition: background 0.2s; }
+  .tabs { display:flex; margin:20px 0; gap:5px; flex-wrap:wrap; }
+  .tablink { padding:10px 20px; border:none; border-radius:6px; background:#ddd; color:#333; font-weight:bold; }
+  .tablink.active { background:#3498db; color:#fff; }
+  .tablink:hover:not(.active) { background:#bbb; }
+  .tabcontent { display:none; }
+  .cards { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px; }
+  .card { background:white; flex:1 1 150px; padding:15px; border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,0.1); transition: transform 0.1s, box-shadow 0.1s; }
+  .card:hover { transform: translateY(-2px); box-shadow:0 4px 8px rgba(0,0,0,0.15); }
+  .form-container { background:white; padding:15px; border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,0.1); margin-bottom:20px; }
+  table { width:100%; border-collapse:collapse; background:white; }
+  th,td { padding:8px; border:1px solid #ccc; text-align:center; }
+  #logoutBtn { background:#e74c3c; color:white; border:none; padding:6px 12px; border-radius:6px; }
+  #profitSection { display:none; }
 </style>
 </head>
 <body>
 <div class="container">
 
-<h1>💼 Cashflow System</h1>
-
-<div class="tabs">
-<button class="tablink active" onclick="openTab('dashboard',this)">Dashboard</button>
-<button class="tablink" onclick="openTab('cashflow',this)">Cashflow</button>
-<button class="tablink" onclick="openTab('rebalance',this)">Rebalance</button>
+<!-- LOGIN -->
+<div id="loginSection">
+  <h1>Login</h1>
+  <form id="loginForm">
+    <label>Email:<input type="email" id="loginEmail" required></label><br><br>
+    <label>Password:<input type="password" id="loginPassword" required></label><br><br>
+    <button type="submit">Login</button>
+  </form>
 </div>
 
-<div id="dashboard" class="tabcontent" style="display:block">
-<div class="cards">
-<div class="card"><h3>Cash</h3><p id="dashCash">₱0</p></div>
-<div class="card"><h3>GCash</h3><p id="dashGcash">₱0</p></div>
-<div class="card" id="profitSection"><h3>Profit</h3><p id="dashProfit">₱0</p></div>
-<div class="card"><h3>Total</h3><p id="dashTotal">₱0</p></div>
-</div>
+<!-- APP -->
+<div id="appSection" style="display:none;">
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <h1 style="font-size:28px;">💼 Cashflow System</h1>
+    <button id="logoutBtn" onclick="logout()">Logout</button>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tablink" onclick="openTab('dashboard', this)">Dashboard</button>
+    <button class="tablink" onclick="openTab('cashflow', this)">Cash-in / Cash-out</button>
+    <button class="tablink" onclick="openTab('rebalance', this)">Rebalance</button>
+    <button class="tablink" id="ownerSettingsTab" onclick="openTab('ownerSettings', this)" style="display:none;">Owner Settings</button>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="dashboard" class="tabcontent">
+    <div class="cards">
+      <div class="card"><h3>Cash-on-hand</h3><p id="dashCash">₱0</p></div>
+      <div class="card"><h3>GCash Balance</h3><p id="dashGcash">₱0</p></div>
+      <div class="card" id="profitSection"><h3>Total Profit</h3><p id="dashProfit">₱0</p></div>
+      <div class="card"><h3>Total Balance</h3><p id="dashTotal">₱0</p></div>
+    </div>
+    <div class="cards">
+      <div class="card"><h4>Daily Total</h4><p id="dailyTotal">₱0</p></div>
+      <div class="card"><h4>Weekly Total</h4><p id="weeklyTotal">₱0</p></div>
+      <div class="card"><h4>Monthly Total</h4><p id="monthlyTotal">₱0</p></div>
+      <div class="card"><h4>Yearly Total</h4><p id="yearlyTotal">₱0</p></div>
+    </div>
+  </div>
+
+  <!-- CASHFLOW -->
+  <div id="cashflow" class="tabcontent">
+    <div class="form-container">
+      <h2>Add Cash-in / Cash-out</h2>
+      <form id="transactionForm">
+        <label>Type:
+          <select id="type" required>
+            <option value="cashin">Cash-in</option>
+            <option value="cashout">Cash-out</option>
+            <option value="loading">Loading</option>
+            <option value="billspayment">Bills Payment</option>
+          </select>
+        </label><br><br>
+        <label>Amount:<input type="number" id="amount" required min="1" placeholder="₱0"></label><br><br>
+        <label>Payment Method:
+          <select id="method" required>
+            <option value="cash">Cash</option>
+            <option value="gcash">GCash</option>
+          </select>
+        </label><br><br>
+        <label>Notes:<input type="text" id="notes" placeholder="Optional"></label><br><br>
+        <button type="submit">Add Transaction</button>
+      </form>
+    </div>
+    <h2>Transaction History</h2>
+    <table id="transactionTable">
+      <thead>
+        <tr>
+          <th>Date</th><th>Type</th><th>Amount</th><th>Method</th><th>Fee</th><th>Profit</th><th>Notes</th><th>By</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- REBALANCE -->
+  <div id="rebalance" class="tabcontent">
+    <div class="form-container">
+      <h2>Rebalance Cash / GCash</h2>
+      <form id="rebalanceForm">
+        <label>From:
+          <select id="rebalanceFrom" required>
+            <option value="cash">Cash-on-hand</option>
+            <option value="gcash">GCash</option>
+          </select>
+        </label><br><br>
+        <label>To:
+          <select id="rebalanceTo" required>
+            <option value="cash">Cash-on-hand</option>
+            <option value="gcash">GCash</option>
+          </select>
+        </label><br><br>
+        <label>Amount:<input type="number" id="rebalanceAmount" required min="1"></label><br><br>
+        <label>Notes:<input type="text" id="rebalanceNotes" placeholder="Optional"></label><br><br>
+        <button type="submit">Transfer</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- OWNER SETTINGS -->
+  <div id="ownerSettings" class="tabcontent">
+    <h2>Owner Settings</h2>
+    <form id="manualBalanceForm">
+      <label>Cash Balance</label>
+      <input type="number" id="manualCash" step="0.01" required><br><br>
+      <label>GCash Balance</label>
+      <input type="number" id="manualGCash" step="0.01" required><br><br>
+      <button type="submit">Update Balances</button>
+    </form>
+    <div style="border:2px solid #e74c3c; padding:15px; border-radius:10px; margin-top:20px;">
+      <h3 style="color:#e74c3c;">⚠️ Danger Zone</h3>
+      <p>This will permanently reset all balances and transactions.</p>
+      <button id="clearResetBtn" onclick="confirmClear()" style="background:#e74c3c;color:white;border:none;padding:10px 16px;border-radius:8px;">RESET SYSTEM</button>
+    </div>
+  </div>
+
 </div>
 
-<div id="cashflow" class="tabcontent">
-<form id="transactionForm">
-<select id="type">
-<option value="cashin">Cash-In</option>
-<option value="cashout">Cash-Out</option>
-<option value="loading">Loading</option>
-<option value="billspayment">Bills Payment</option>
-</select>
-<input type="number" id="amount" placeholder="Amount" required>
-<button>Add</button>
-</form>
-
-<table>
-<thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Fee</th><th>Profit</th></tr></thead>
-<tbody id="txTable"></tbody>
-</table>
-</div>
-
-<div id="rebalance" class="tabcontent">
-<form id="rebalanceForm">
-<select id="from"><option value="cash">Cash</option><option value="gcash">GCash</option></select>
-<select id="to"><option value="cash">Cash</option><option value="gcash">GCash</option></select>
-<input type="number" id="rebalanceAmount" required>
-<button>Transfer</button>
-</form>
-</div>
-
-</div>
-
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-analytics-compat.js"></script>
 
 <script>
-firebase.initializeApp({
-apiKey:"AIzaSyDF5BuG7cfbLhyIWJkgzKVNmXH9KtB4_AQ",
-authDomain:"cashflowsystem-e8597.firebaseapp.com",
-projectId:"cashflowsystem-e8597"
-});
-const db=firebase.firestore();
-const bal=db.collection("balances").doc("main");
-
-function calculateFee(amount){
-if(amount<=100) return 5;
-if(amount<=500) return 10;
-if(amount<=1000) return 20;
-if(amount<=1500) return 30;
-if(amount<=2000) return 40;
-if(amount<=2500) return 50;
-return 50 + Math.ceil((amount-2500)/500)*10;
-}
-
-bal.onSnapshot(s=>{
-const d=s.data()||{cash:0,gcash:0,profit:0};
-dashCash.innerText="₱"+d.cash;
-dashGcash.innerText="₱"+d.gcash;
-dashProfit.innerText="₱"+d.profit;
-dashTotal.innerText="₱"+(d.cash+d.gcash);
-});
-
-transactionForm.onsubmit=async e=>{
-e.preventDefault();
-const type=type.value;
-const amt=+amount.value;
-let fee=0,profit=0,cash=0,gc=0;
-
-if(type==="cashin"){
-fee=calculateFee(amt);
-profit=fee;
-gc=-amt;
-cash=amt-fee;
-}
-
-if(type==="cashout"){
-fee=calculateFee(amt);
-profit=fee;
-cash=-amt;
-gc=amt-fee;
-}
-
-if(type==="loading"||type==="billspayment"){
-fee=calculateFee(amt);
-profit=fee;
-gc=-(amt+fee);
-cash=amt;
-}
-
-await bal.update({
-cash:firebase.firestore.FieldValue.increment(cash),
-gcash:firebase.firestore.FieldValue.increment(gc),
-profit:firebase.firestore.FieldValue.increment(profit)
-});
-
-await db.collection("transactions").add({
-date:new Date().toISOString(),type,amount:amt,fee,profit
-});
+const firebaseConfig = {
+  apiKey: "AIzaSyDF5BuG7cfbLhyIWJkgzKVNmXH9KtB4_AQ",
+  authDomain: "cashflowsystem-e8597.firebaseapp.com",
+  projectId: "cashflowsystem-e8597",
+  storageBucket: "cashflowsystem-e8597.firebasestorage.app",
+  messagingSenderId: "282993339590",
+  appId: "1:282993339590:web:a9aa3ed3d21341195fbbc7",
+  measurementId: "G-8NG4M1874C"
 };
-function openTab(id,b){
-document.querySelectorAll(".tabcontent").forEach(t=>t.style.display="none");
-document.getElementById(id).style.display="block";
-document.querySelectorAll(".tablink").forEach(x=>x.classList.remove("active"));
-b.classList.add("active");
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+const balancesRef = db.collection("balances").doc("main");
+let currentUserRole = "";
+
+// ----- LOGIN -----
+async function login(email,password){
+  try{
+    const userCredential = await auth.signInWithEmailAndPassword(email,password);
+    const uid = userCredential.user.uid;
+    const userDoc = await db.collection("users").doc(uid).get();
+    if(!userDoc.exists){ alert("No role assigned!"); auth.signOut(); return; }
+    currentUserRole = userDoc.data().role;
+    document.getElementById("loginSection").style.display="none";
+    document.getElementById("appSection").style.display="block";
+    applyRoleUI(currentUserRole);
+    setupDashboardRealtime();
+    setupTransactionsListener();
+    initializeTabs();
+  }catch(e){ alert(e.message); }
 }
+
+// ----- ROLE UI -----
+function applyRoleUI(role){
+  const cashInOut = document.getElementById("cashflow");
+  const rebalance = document.getElementById("rebalance");
+  const profitSection = document.getElementById("profitSection");
+  const ownerTab = document.getElementById("ownerSettingsTab");
+  const clearBtn = document.getElementById("clearResetBtn");
+  cashInOut.style.display="none"; rebalance.style.display="none"; profitSection.style.display="none"; ownerTab.style.display="none"; clearBtn.style.display="none";
+  if(role==="staff"){ cashInOut.style.display="block"; }
+  if(role==="owner"){ cashInOut.style.display="block"; rebalance.style.display="block"; profitSection.style.display="block"; ownerTab.style.display="inline-block"; clearBtn.style.display="inline-block"; }
+}
+
+// ----- LOGIN FORM -----
+document.getElementById("loginForm").addEventListener("submit", e=>{
+  e.preventDefault();
+  login(document.getElementById("loginEmail").value, document.getElementById("loginPassword").value);
+});
+
+// ----- TABS -----
+function openTab(tab, btn){
+  document.querySelectorAll(".tabcontent").forEach(t=>t.style.display="none");
+  document.getElementById(tab).style.display="block";
+  document.querySelectorAll(".tablink").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  localStorage.setItem("activeTab", tab);
+}
+function initializeTabs(){
+  document.querySelectorAll(".tabcontent").forEach(t=>t.style.display="none");
+  const lastTab = localStorage.getItem("activeTab") || "dashboard";
+  document.getElementById(lastTab).style.display="block";
+  document.querySelectorAll(".tablink").forEach(b=>{
+    b.classList.remove("active");
+    if(b.getAttribute("onclick")?.includes(lastTab)) b.classList.add("active");
+  });
+}
+
+// ----- TRANSACTION TABLE -----
+function setupTransactionsListener(){
+  db.collection("transactions").orderBy("date","desc").onSnapshot(snap=>{
+    const tbody=document.querySelector("#transactionTable tbody"); tbody.innerHTML="";
+    snap.forEach(doc=>{
+      const tx = doc.data();
+      const tr = document.createElement("tr");
+      tr.innerHTML=`<td>${new Date(tx.date).toLocaleString()}</td><td>${tx.type}</td><td>₱${tx.amount}</td><td>${tx.method}</td><td>₱${tx.fee}</td><td>₱${tx.profit}</td><td>${tx.notes}</td><td>${tx.role}</td>`;
+      tbody.appendChild(tr);
+    });
+  });
+}
+
+// ----- DASHBOARD REALTIME -----
+function setupDashboardRealtime(){
+  balancesRef.onSnapshot(snap=>{
+    if(!snap.exists) return;
+    const data = snap.data();
+    document.getElementById("dashCash").innerText = `₱${data.cash||0}`;
+    document.getElementById("dashGcash").innerText = `₱${data.gcash||0}`;
+    document.getElementById("dashProfit").innerText = `₱${data.profit||0}`;
+    document.getElementById("dashTotal").innerText = `₱${(data.cash||0)+(data.gcash||0)}`;
+  });
+
+  db.collection("transactions").onSnapshot(snap=>{
+    let daily=0,weekly=0,monthly=0,yearly=0;
+    const now=new Date();
+    const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(now.getDate()-7);
+    snap.forEach(doc=>{
+      const tx=doc.data(); if(tx.type==="rebalance") return;
+      const txDate=new Date(tx.date);
+      if(txDate.toDateString()===now.toDateString()) daily+=tx.profit;
+      if(txDate>=sevenDaysAgo) weekly+=tx.profit;
+      if(txDate.getMonth()===now.getMonth() && txDate.getFullYear()===now.getFullYear()) monthly+=tx.profit;
+      if(txDate.getFullYear()===now.getFullYear()) yearly+=tx.profit;
+    });
+    document.getElementById("dailyTotal").innerText=`₱${daily}`;
+    document.getElementById("weeklyTotal").innerText=`₱${weekly}`;
+    document.getElementById("monthlyTotal").innerText=`₱${monthly}`;
+    document.getElementById("yearlyTotal").innerText=`₱${yearly}`;
+  });
+}
+
+// ----- FEE CALC -----
+function calculateFee(amount){
+  if(amount<=100) return 5;
+  if(amount<=500) return 10;
+  if(amount<=1000) return 20;
+  return 20 + Math.floor((amount-1000)/1000)*20;
+}
+
+// ----- TRANSACTION FORM -----
+document.getElementById("transactionForm").addEventListener("submit", async e=>{
+  e.preventDefault();
+  const type=document.getElementById("type").value.toLowerCase();
+  const method=document.getElementById("method").value;
+  const notes=document.getElementById("notes").value||"";
+  const amount=parseFloat(document.getElementById("amount").value);
+
+  let fee=0, profit=0;
+  let cashChange=0, gcashChange=0;
+
+
+  
+  if(type==="cashin"){
+  fee = calculateFee(amount);
+  profit = fee;
+
+  // REAL CASH-IN FLOW:
+  // You SEND gcash, you RECEIVE cash
+  gcashChange = -amount;
+  cashChange = amount - fee;
+}
+      else if(type==="cashout"){
+    fee = calculateFee(amount);
+    profit = fee;
+    if(method==="cash"){ cashChange = -amount; gcashChange = amount; }
+    else{ gcashChange = -amount; cashChange = amount; }
+  }
+      else if(type==="loading"){
+    fee = 2;
+    profit = amount - fee;
+    if(method==="gcash"){ gcashChange = -(amount+fee); cashChange = amount; }
+    else{ cashChange = -(amount+fee); gcashChange = amount; }
+  }
+      else if(type==="billspayment"){
+    fee = calculateFee(amount);
+    profit = fee;
+    if(method==="gcash"){ gcashChange = -(amount+fee); cashChange = amount; }
+    else{ cashChange = -(amount+fee); gcashChange = amount; }
+  }
+
+  await balancesRef.update({
+    cash: firebase.firestore.FieldValue.increment(cashChange),
+    gcash: firebase.firestore.FieldValue.increment(gcashChange),
+    profit: firebase.firestore.FieldValue.increment(profit)
+  });
+
+  await db.collection("transactions").add({date:new Date().toISOString(),type,amount,method,fee,profit,notes,role:currentUserRole});
+  document.getElementById("transactionForm").reset();
+});
+
+// ----- REBALANCE -----
+document.getElementById("rebalanceForm").addEventListener("submit", async e=>{
+  e.preventDefault();
+  const from=document.getElementById("rebalanceFrom").value;
+  const to=document.getElementById("rebalanceTo").value;
+  const amount=parseFloat(document.getElementById("rebalanceAmount").value);
+  const notes=document.getElementById("rebalanceNotes").value||"";
+  if(from===to){ alert("Cannot transfer to same account!"); return; }
+  if(from==="cash"&&to==="gcash") await balancesRef.update({cash:firebase.firestore.FieldValue.increment(-amount),gcash:firebase.firestore.FieldValue.increment(amount)});
+  if(from==="gcash"&&to==="cash") await balancesRef.update({gcash:firebase.firestore.FieldValue.increment(-amount),cash:firebase.firestore.FieldValue.increment(amount)});
+  await db.collection("transactions").add({date:new Date().toISOString(),type:"rebalance",amount,method:`${from}→${to}`,fee:0,profit:0,notes,role:currentUserRole});
+  document.getElementById("rebalanceForm").reset();
+});
+
+// ----- MANUAL BALANCE -----
+document.getElementById("manualBalanceForm").addEventListener("submit", async e=>{
+  e.preventDefault();
+  const cash=parseFloat(document.getElementById("manualCash").value)||0;
+  const gcash=parseFloat(document.getElementById("manualGCash").value)||0;
+  await balancesRef.set({cash,gcash,profit:0,initialized:true});
+  alert("Balances updated!");
+});
+
+// ----- RESET SYSTEM -----
+function confirmClear(){
+  if(!confirm("⚠️ This will RESET ALL DATA. Are you sure?")) return;
+  const confirm2 = prompt("Type RESET to confirm:");
+  if(confirm2!=="RESET"){ alert("Reset cancelled."); return; }
+  clearAllData();
+}
+async function clearAllData(){
+  const txSnap = await db.collection("transactions").get();
+  txSnap.forEach(doc=>doc.ref.delete());
+  await balancesRef.set({cash:0,gcash:0,profit:0,initialized:true});
+  alert("All data cleared!");
+}
+
+// ----- LOGOUT -----
+function logout(){
+  auth.signOut();
+  document.getElementById("appSection").style.display="none";
+  document.getElementById("loginSection").style.display="block";
+  document.getElementById("loginEmail").value="";
+  document.getElementById("loginPassword").value="";
+}
+
+// ----- AUTH STATE -----
+firebase.auth().onAuthStateChanged(user=>{
+  if(user){
+    db.collection("users").doc(user.uid).get().then(doc=>{
+      if(!doc.exists){ alert("No role!"); auth.signOut(); return; }
+      currentUserRole = doc.data().role;
+      document.getElementById("loginSection").style.display="none";
+      document.getElementById("appSection").style.display="block";
+      applyRoleUI(currentUserRole);
+      setupDashboardRealtime();
+      setupTransactionsListener();
+      initializeTabs();
+    });
+  }
+});
 </script>
 </body>
 </html>
