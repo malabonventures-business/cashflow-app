@@ -46,30 +46,28 @@
 
   <!-- Tabs -->
   <div class="tabs">
-    <button class="tablink active" onclick="openTab('dashboard', this)">Dashboard</button>
+    <button class="tablink" onclick="openTab('dashboard', this)">Dashboard</button>
     <button class="tablink" onclick="openTab('cashflow', this)">Cash-in / Cash-out</button>
     <button class="tablink" onclick="openTab('rebalance', this)">Rebalance</button>
     <button class="tablink" id="ownerSettingsTab" onclick="openTab('ownerSettings', this)" style="display:none;">Owner Settings</button>
   </div>
 
   <!-- DASHBOARD -->
-<div id="dashboard" class="tabcontent" style="display:block;">
-  <div class="cards">
-    <div class="card"><h3>Cash-on-hand</h3><p id="dashCash">₱0</p></div>
-    <div class="card"><h3>GCash Balance</h3><p id="dashGcash">₱0</p></div>
-    <div class="card" id="profitSection"><h3>Total Profit</h3><p id="dashProfit">₱0</p></div>
-    <div class="card"><h3>Total Balance</h3><p id="dashTotal">₱0</p></div>
+  <div id="dashboard" class="tabcontent">
+    <div class="cards">
+      <div class="card"><h3>Cash-on-hand</h3><p id="dashCash">₱0</p></div>
+      <div class="card"><h3>GCash Balance</h3><p id="dashGcash">₱0</p></div>
+      <div class="card" id="profitSection"><h3>Total Profit</h3><p id="dashProfit">₱0</p></div>
+      <div class="card"><h3>Total Balance</h3><p id="dashTotal">₱0</p></div>
+    </div>
+    <div class="cards">
+      <div class="card"><h4>Daily Total</h4><p id="dailyTotal">₱0</p></div>
+      <div class="card"><h4>Weekly Total</h4><p id="weeklyTotal">₱0</p></div>
+      <div class="card"><h4>Monthly Total</h4><p id="monthlyTotal">₱0</p></div>
+      <div class="card"><h4>Yearly Total</h4><p id="yearlyTotal">₱0</p></div>
+    </div>
   </div>
-  <div class="cards">
-    <div class="card"><h4>Daily Total</h4><p id="dailyTotal">₱0</p></div>
-    <div class="card"><h4>Weekly Total</h4><p id="weeklyTotal">₱0</p></div>
-    <div class="card"><h4>Monthly Total</h4><p id="monthlyTotal">₱0</p></div>
-    <div class="card"><h4>Yearly Total</h4><p id="yearlyTotal">₱0</p></div>
-  </div>
-</div>
 
-
-  
   <!-- CASHFLOW -->
   <div id="cashflow" class="tabcontent">
     <div class="form-container">
@@ -145,6 +143,7 @@
       <button id="clearResetBtn" onclick="confirmClear()" style="background:#e74c3c;color:white;border:none;padding:10px 16px;border-radius:8px;">RESET SYSTEM</button>
     </div>
   </div>
+
 </div>
 
 <!-- Firebase -->
@@ -183,6 +182,7 @@ async function login(email,password){
     applyRoleUI(currentUserRole);
     setupDashboardRealtime();
     setupTransactionsListener();
+    initializeTabs();
   }catch(e){ alert(e.message); }
 }
 
@@ -205,11 +205,23 @@ document.getElementById("loginForm").addEventListener("submit", e=>{
 });
 
 // ---------- TABS ----------
-function openTab(tab,btn){
+function openTab(tab, btn){
   document.querySelectorAll(".tabcontent").forEach(t=>t.style.display="none");
   document.getElementById(tab).style.display="block";
   document.querySelectorAll(".tablink").forEach(b=>b.classList.remove("active"));
   btn.classList.add("active");
+  localStorage.setItem("activeTab", tab); // save last tab
+}
+
+// ---------- INITIAL TAB ON REFRESH ----------
+function initializeTabs(){
+  document.querySelectorAll(".tabcontent").forEach(t=>t.style.display="none");
+  const lastTab = localStorage.getItem("activeTab") || "dashboard";
+  document.getElementById(lastTab).style.display="block";
+  document.querySelectorAll(".tablink").forEach(b=>{
+    b.classList.remove("active");
+    if(b.getAttribute("onclick")?.includes(lastTab)) b.classList.add("active");
+  });
 }
 
 // ---------- TRANSACTION TABLE ----------
@@ -228,16 +240,15 @@ function setupTransactionsListener(){
 // ---------- DASHBOARD REALTIME ----------
 function setupDashboardRealtime(){
   balancesRef.onSnapshot(snap=>{
-  if(!snap.exists) return;
-  const data = snap.data();
-  const cash = data.cash||0;
-  const gcash = data.gcash||0;
-  document.getElementById("dashCash").innerText = `₱${cash}`;
-  document.getElementById("dashGcash").innerText = `₱${gcash}`;
-  document.getElementById("dashProfit").innerText = `₱${data.profit||0}`;
-  document.getElementById("dashTotal").innerText = `₱${cash + gcash}`;
-});
-
+    if(!snap.exists) return;
+    const data = snap.data();
+    const cash = data.cash||0;
+    const gcash = data.gcash||0;
+    document.getElementById("dashCash").innerText = `₱${cash}`;
+    document.getElementById("dashGcash").innerText = `₱${gcash}`;
+    document.getElementById("dashProfit").innerText = `₱${data.profit||0}`;
+    document.getElementById("dashTotal").innerText = `₱${cash + gcash}`;
+  });
 
   db.collection("transactions").onSnapshot(snap=>{
     let daily=0,weekly=0,monthly=0,yearly=0;
@@ -260,6 +271,7 @@ function setupDashboardRealtime(){
 
 // ---------- TRANSACTION & REBALANCE FORM ----------
 function calculateFee(amount){ if(amount<100)return 5; if(amount<500)return 10; if(amount<1000)return 20; if(amount<1500)return 30; if(amount<2000)return 40; return 20+Math.floor((amount-1000)/1000)*20; }
+
 document.getElementById("transactionForm").addEventListener("submit", async e=>{
   e.preventDefault();
   const type=document.getElementById("type").value.toLowerCase();
@@ -268,13 +280,25 @@ document.getElementById("transactionForm").addEventListener("submit", async e=>{
   const amount=parseFloat(document.getElementById("amount").value);
   const fee=calculateFee(amount);
   let profit=0;
-  if(type==="cashin"){ profit=fee; if(method==="cash") await balancesRef.update({cash:firebase.firestore.FieldValue.increment(amount-fee),profit:firebase.firestore.FieldValue.increment(fee)}); else await balancesRef.update({gcash:firebase.firestore.FieldValue.increment(amount-fee),profit:firebase.firestore.FieldValue.increment(fee)}); }
-  else if(type==="cashout"){ profit=0; if(method==="cash") await balancesRef.update({cash:firebase.firestore.FieldValue.increment(-amount)}); else await balancesRef.update({gcash:firebase.firestore.FieldValue.increment(-amount)});}
-  else if(type==="loading"){ profit=2; if(method==="gcash") await balancesRef.update({gcash:firebase.firestore.FieldValue.increment(-(amount+2)),profit:firebase.firestore.FieldValue.increment(2)}); else await balancesRef.update({cash:firebase.firestore.FieldValue.increment(-(amount+2)),profit:firebase.firestore.FieldValue.increment(2)});}
-  else if(type==="billspayment"){ profit=fee; if(method==="gcash") await balancesRef.update({gcash:firebase.firestore.FieldValue.increment(-(amount+fee)),profit:firebase.firestore.FieldValue.increment(fee)}); else await balancesRef.update({cash:firebase.firestore.FieldValue.increment(-(amount+fee)),profit:firebase.firestore.FieldValue.increment(fee)});}
+
+  if(type==="cashin"){ profit=fee; 
+    if(method==="cash") await balancesRef.update({cash:firebase.firestore.FieldValue.increment(amount-fee),profit:firebase.firestore.FieldValue.increment(fee)});
+    else await balancesRef.update({gcash:firebase.firestore.FieldValue.increment(amount-fee),profit:firebase.firestore.FieldValue.increment(fee)});
+  } else if(type==="cashout"){ profit=0;
+    if(method==="cash") await balancesRef.update({cash:firebase.firestore.FieldValue.increment(-amount)});
+    else await balancesRef.update({gcash:firebase.firestore.FieldValue.increment(-amount)});
+  } else if(type==="loading"){ profit=2;
+    if(method==="gcash") await balancesRef.update({gcash:firebase.firestore.FieldValue.increment(-(amount+2)),profit:firebase.firestore.FieldValue.increment(2)});
+    else await balancesRef.update({cash:firebase.firestore.FieldValue.increment(-(amount+2)),profit:firebase.firestore.FieldValue.increment(2)});
+  } else if(type==="billspayment"){ profit=fee;
+    if(method==="gcash") await balancesRef.update({gcash:firebase.firestore.FieldValue.increment(-(amount+fee)),profit:firebase.firestore.FieldValue.increment(fee)});
+    else await balancesRef.update({cash:firebase.firestore.FieldValue.increment(-(amount+fee)),profit:firebase.firestore.FieldValue.increment(fee)});
+  }
+
   await db.collection("transactions").add({date:new Date().toISOString(),type,amount,method,fee,profit,notes,role:currentUserRole});
   document.getElementById("transactionForm").reset();
 });
+
 document.getElementById("rebalanceForm").addEventListener("submit", async e=>{
   e.preventDefault();
   const from=document.getElementById("rebalanceFrom").value;
@@ -296,12 +320,14 @@ document.getElementById("manualBalanceForm").addEventListener("submit", async e=
   await balancesRef.set({cash,gcash,profit:0,initialized:true});
   alert("Balances updated!");
 });
+
 function confirmClear(){
   if(!confirm("⚠️ This will RESET ALL DATA. Are you sure?")) return;
   const confirm2 = prompt("Type RESET to confirm:");
   if(confirm2!=="RESET"){ alert("Reset cancelled."); return; }
   clearAllData();
 }
+
 async function clearAllData(){
   const txSnap = await db.collection("transactions").get();
   txSnap.forEach(doc=>doc.ref.delete());
@@ -329,6 +355,7 @@ firebase.auth().onAuthStateChanged(user=>{
       applyRoleUI(currentUserRole);
       setupDashboardRealtime();
       setupTransactionsListener();
+      initializeTabs();
     });
   }
 });
