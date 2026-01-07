@@ -220,7 +220,7 @@ document.getElementById("rebalanceForm").addEventListener("submit", async e=>{
 
 
 
-// ----------------- LOAD DASHBOARD -----------------
+
 // ----------------- LOAD DASHBOARD REALTIME -----------------
 function setupDashboardListener() {
   balancesRef.onSnapshot((snap) => {
@@ -230,6 +230,9 @@ function setupDashboardListener() {
     document.getElementById("dashCash").innerText = `₱${data.cash || 0}`;
     document.getElementById("dashGcash").innerText = `₱${data.gcash || 0}`;
     document.getElementById("dashProfit").innerText = `₱${data.profit || 0}`;
+    
+    // Optional: update totals (daily, weekly, monthly, yearly)
+    updateTotalsRealtime();
   });
 }
 
