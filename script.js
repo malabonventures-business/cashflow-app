@@ -302,3 +302,17 @@ firebase.auth().onAuthStateChanged(async user=>{
   await loadDashboard();
   await loadTransactions();
 });
+
+
+function logout() {
+  firebase.auth().signOut().then(() => {
+    document.getElementById("appSection").style.display = "none";
+    document.getElementById("loginSection").style.display = "block";
+
+    // Optional: clear UI
+    document.getElementById("loginEmail").value = "";
+    document.getElementById("loginPassword").value = "";
+  }).catch(error => {
+    alert("Logout failed: " + error.message);
+  });
+}
