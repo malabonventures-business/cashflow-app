@@ -73,10 +73,7 @@ async function applyRoleUI(role) {
   }
 }
 
-    }
-  }
-}
-
+ 
 // ----------------- LOGIN FORM -----------------
 document.getElementById("loginForm").addEventListener("submit", e=>{
   e.preventDefault();
