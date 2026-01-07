@@ -33,7 +33,7 @@ async function login(email, password){
       document.getElementById("appSection").style.display = "block";
 
       await applyRoleUI(currentUserRole);
-      setupDashboardListener(); // <--- instead of loadDashboard();
+      setupDashboardRealtime(); // <--- instead of loadDashboard();
       await loadTransactions();
 
     } else {
@@ -357,7 +357,7 @@ firebase.auth().onAuthStateChanged(async user=>{
   document.getElementById("appSection").style.display = "block";
 
 await applyRoleUI(currentUserRole);
-setupDashboardListener(); // <--- instead of loadDashboard();
+setupDashboardRealtime(); // <--- instead of loadDashboard();
 await loadTransactions();
 });
 
