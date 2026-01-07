@@ -221,67 +221,88 @@ document.getElementById("rebalanceForm").addEventListener("submit", async e=>{
 
 
 
-// ----------------- LOAD DASHBOARD REALTIME -----------------
-function setupDashboardListener() {
+// ----------------- REAL-TIME DASHBOARD & TOTALS -----------------
+
+function setupDashboardRealtime() {
+  // Listen to balances document
   balancesRef.onSnapshot((snap) => {
-    if(!snap.exists) return;
+    if (!snap.exists) return;
 
     const data = snap.data();
     document.getElementById("dashCash").innerText = `₱${data.cash || 0}`;
     document.getElementById("dashGcash").innerText = `₱${data.gcash || 0}`;
     document.getElementById("dashProfit").innerText = `₱${data.profit || 0}`;
-    
-    // Optional: update totals (daily, weekly, monthly, yearly)
-    updateTotalsRealtime();
+  });
+
+  // Listen to all transactions to calculate totals
+  db.collection("transactions").onSnapshot((snap) => {
+    let daily = 0,
+        weekly = 0,
+        monthly = 0,
+        yearly = 0;
+
+    const now = new Date();
+
+    snap.forEach((doc) => {
+      const tx = doc.data();
+      if (tx.type === "rebalance") return;
+
+      const txDate = new Date(tx.date);
+
+      // Daily
+      if (txDate.toDateString() === now.toDateString()) daily += tx.profit;
+
+      // Weekly (last 7 days)
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(now.getDate() - 7);
+      if (txDate >= sevenDaysAgo) weekly += tx.profit;
+
+      // Monthly
+      if (txDate.getMonth() === now.getMonth() && txDate.getFullYear() === now.getFullYear())
+        monthly += tx.profit;
+
+      // Yearly
+      if (txDate.getFullYear() === now.getFullYear()) yearly += tx.profit;
+    });
+
+    // Update DOM
+    document.getElementById("dailyTotal").innerText = `₱${daily}`;
+    document.getElementById("weeklyTotal").innerText = `₱${weekly}`;
+    document.getElementById("monthlyTotal").innerText = `₱${monthly}`;
+    document.getElementById("yearlyTotal").innerText = `₱${yearly}`;
   });
 }
 
-  // Compute totals
-  const txSnap = await db.collection("transactions").get();
-  let daily=0, weekly=0, monthly=0, yearly=0;
-  const now = new Date();
-
-  txSnap.forEach(doc=>{
-    const tx = doc.data();
-    if(tx.type==="rebalance") return;
-
-    const txDate = new Date(tx.date);
-    if(txDate.toDateString()===now.toDateString()) daily+=tx.profit;
-    if(txDate > new Date(now.getFullYear(), now.getMonth(), now.getDate()-7)) weekly+=tx.profit;
-    if(txDate.getMonth()===now.getMonth() && txDate.getFullYear()===now.getFullYear()) monthly+=tx.profit;
-    if(txDate.getFullYear()===now.getFullYear()) yearly+=tx.profit;
-  });
-
-  document.getElementById("dailyTotal").innerText = `₱${daily}`;
-  document.getElementById("weeklyTotal").innerText = `₱${weekly}`;
-  document.getElementById("monthlyTotal").innerText = `₱${monthly}`;
-  document.getElementById("yearlyTotal").innerText = `₱${yearly}`;
-}
-
+// Call this once when your script loads
+setupDashboardRealtime();
 
 
 // ----------------- LOAD TRANSACTIONS -----------------
-async function loadTransactions(){
-  const txSnap = await db.collection("transactions").get();
-  const tbody = document.querySelector("#transactionTable tbody");
-  tbody.innerHTML = "";
+function setupTransactionsListener() {
+  db.collection("transactions")
+    .orderBy("date", "desc")
+    .onSnapshot((snapshot) => {
+      const tbody = document.querySelector("#transactionTable tbody");
+      tbody.innerHTML = "";
 
-  txSnap.forEach(doc=>{
-    const tx = doc.data();
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${new Date(tx.date).toLocaleString()}</td>
-      <td>${tx.type}</td>
-      <td>₱${tx.amount}</td>
-      <td>${tx.method}</td>
-      <td>₱${tx.fee}</td>
-      <td>₱${tx.profit}</td>
-      <td>${tx.notes}</td>
-      <td>${tx.role}</td>
-    `;
-    tbody.appendChild(tr);
-  });
+      snapshot.forEach(doc => {
+        const tx = doc.data();
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${new Date(tx.date).toLocaleString()}</td>
+          <td>${tx.type}</td>
+          <td>₱${tx.amount}</td>
+          <td>${tx.method}</td>
+          <td>₱${tx.fee}</td>
+          <td>₱${tx.profit}</td>
+          <td>${tx.notes}</td>
+          <td>${tx.role}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    });
 }
+
 
 
 
