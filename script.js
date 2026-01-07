@@ -33,8 +33,9 @@ async function login(email, password){
       document.getElementById("appSection").style.display = "block";
 
       await applyRoleUI(currentUserRole);
-      await loadDashboard();
+      setupDashboardListener(); // <--- instead of loadDashboard();
       await loadTransactions();
+
     } else {
       alert("No role assigned for this user in Firestore!");
       auth.signOut();
@@ -220,21 +221,17 @@ document.getElementById("rebalanceForm").addEventListener("submit", async e=>{
 
 
 // ----------------- LOAD DASHBOARD -----------------
-async function loadDashboard(){
-  const snap = await balancesRef.get();
-  if(!snap.exists){
-    // Auto-initialize starting balance
-    await balancesRef.set({ cash:5320, gcash:736.12, profit:0, initialized:true });
-    document.getElementById("dashCash").innerText = "₱5320";
-    document.getElementById("dashGcash").innerText = "₱736.12";
-    document.getElementById("dashProfit").innerText = "₱0";
-    return;
-  }
+// ----------------- LOAD DASHBOARD REALTIME -----------------
+function setupDashboardListener() {
+  balancesRef.onSnapshot((snap) => {
+    if(!snap.exists) return;
 
-  const data = snap.data();
-  document.getElementById("dashCash").innerText = `₱${data.cash || 0}`;
-  document.getElementById("dashGcash").innerText = `₱${data.gcash || 0}`;
-  document.getElementById("dashProfit").innerText = `₱${data.profit || 0}`;
+    const data = snap.data();
+    document.getElementById("dashCash").innerText = `₱${data.cash || 0}`;
+    document.getElementById("dashGcash").innerText = `₱${data.gcash || 0}`;
+    document.getElementById("dashProfit").innerText = `₱${data.profit || 0}`;
+  });
+}
 
   // Compute totals
   const txSnap = await db.collection("transactions").get();
@@ -336,9 +333,9 @@ firebase.auth().onAuthStateChanged(async user=>{
   document.getElementById("loginSection").style.display = "none";
   document.getElementById("appSection").style.display = "block";
 
-  await applyRoleUI(currentUserRole);
-  await loadDashboard();
-  await loadTransactions();
+await applyRoleUI(currentUserRole);
+setupDashboardListener(); // <--- instead of loadDashboard();
+await loadTransactions();
 });
 
 
