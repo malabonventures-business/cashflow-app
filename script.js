@@ -220,7 +220,6 @@ document.getElementById("rebalanceForm").addEventListener("submit", async e=>{
 
 
 
-
 // ----------------- REAL-TIME DASHBOARD & TOTALS -----------------
 
 function setupDashboardRealtime() {
@@ -234,7 +233,7 @@ function setupDashboardRealtime() {
     document.getElementById("dashProfit").innerText = `₱${data.profit || 0}`;
   });
 
-  // Listen to all transactions to calculate totals
+  // Listen to all transactions to calculate totals in real-time
   db.collection("transactions").onSnapshot((snap) => {
     let daily = 0,
         weekly = 0,
@@ -242,6 +241,8 @@ function setupDashboardRealtime() {
         yearly = 0;
 
     const now = new Date();
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(now.getDate() - 7);
 
     snap.forEach((doc) => {
       const tx = doc.data();
@@ -253,8 +254,6 @@ function setupDashboardRealtime() {
       if (txDate.toDateString() === now.toDateString()) daily += tx.profit;
 
       // Weekly (last 7 days)
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(now.getDate() - 7);
       if (txDate >= sevenDaysAgo) weekly += tx.profit;
 
       // Monthly
@@ -265,7 +264,7 @@ function setupDashboardRealtime() {
       if (txDate.getFullYear() === now.getFullYear()) yearly += tx.profit;
     });
 
-    // Update DOM
+    // Update totals in DOM
     document.getElementById("dailyTotal").innerText = `₱${daily}`;
     document.getElementById("weeklyTotal").innerText = `₱${weekly}`;
     document.getElementById("monthlyTotal").innerText = `₱${monthly}`;
@@ -273,7 +272,7 @@ function setupDashboardRealtime() {
   });
 }
 
-// Call this once when your script loads
+// ----------------- INITIALIZE DASHBOARD -----------------
 setupDashboardRealtime();
 
 
