@@ -293,6 +293,8 @@ document.getElementById("transactionForm").addEventListener("submit", async e =>
 
     let fee = 0, profit = 0;
     let cashChange = 0, gcashChange = 0;
+       let gcashFee = 0; // <-- MOVE TO OUTER SCOPE
+
 
     if (type === "cashin") {
       fee = calculateFee(amount);
