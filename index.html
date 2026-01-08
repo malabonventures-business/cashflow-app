@@ -275,10 +275,15 @@ function calculateFee(amount){
 // ----- TRANSACTION FORM -----
 document.getElementById("transactionForm").addEventListener("submit", async e=>{
   e.preventDefault();
+      // existing code here
   const type=document.getElementById("type").value.toLowerCase();
   const method=document.getElementById("method").value;
   const notes=document.getElementById("notes").value||"";
   const amount=parseFloat(document.getElementById("amount").value);
+   } catch(err){
+     alert("Transaction failed: " + err.message);
+     console.error(err);
+                                                            
 
   let fee=0, profit=0;
   let cashChange=0, gcashChange=0;
