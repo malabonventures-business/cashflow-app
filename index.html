@@ -82,6 +82,12 @@
           </select>
         </label><br><br>
         <label>Amount:<input type="number" id="amount" required min="1" placeholder="₱0"></label><br><br>
+        
+        <label id="billsFeeLabel" style="display:none;">
+  GCash Bill Fee:
+  <input type="number" id="billsGcashFee" min="0" value="0">
+</label><br><br>
+
         <label>Payment Method:
           <select id="method" required>
             <option value="cash">Cash</option>
@@ -272,6 +278,14 @@ function calculateFee(amount){
   return 20 + Math.floor((amount-1000)/1000)*20;
 }
 
+
+  // ----- SHOW / HIDE BILL PAYMENT FEE -----
+document.getElementById("type").addEventListener("change", () => {
+  const isBills = document.getElementById("type").value === "billspayment";
+  document.getElementById("billsFeeLabel").style.display = isBills ? "block" : "none";
+});
+
+  
 // ----- TRANSACTION FORM -----
 document.getElementById("transactionForm").addEventListener("submit", async e=>{
   e.preventDefault();
@@ -320,12 +334,18 @@ document.getElementById("transactionForm").addEventListener("submit", async e=>{
   gcashChange = -amount - gcashFee;
 }
 
-      else if(type==="billspayment"){
-    fee = calculateFee(amount);
-    profit = fee;
-    if(method==="gcash"){ gcashChange = -(amount+fee); cashChange = amount; }
-    else{ cashChange = -(amount+fee); gcashChange = amount; }
-  }
+      else if (type === "billspayment") {
+  const serviceFee = calculateFee(amount);
+  const gcashFee = parseFloat(document.getElementById("billsGcashFee").value) || 0;
+
+  fee = serviceFee;
+  profit = serviceFee - gcashFee;
+
+  // Customer pays CASH, you pay bill via GCASH
+  cashChange = amount + serviceFee;
+  gcashChange = -amount - gcashFee;
+}
+
 
   await balancesRef.update({
     cash: firebase.firestore.FieldValue.increment(cashChange),
