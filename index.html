@@ -227,18 +227,7 @@ function initializeTabs(){
   });
 }
 
-// ----- TRANSACTION TABLE -----
-function setupTransactionsListener(){
-  db.collection("transactions").orderBy("date","desc").onSnapshot(snap=>{
-    const tbody=document.querySelector("#transactionTable tbody"); tbody.innerHTML="";
-    snap.forEach(doc=>{
-      const tx = doc.data();
-      const tr = document.createElement("tr");
-      tr.innerHTML=`<td>${new Date(tx.date).toLocaleString()}</td><td>${tx.type}</td><td>₱${tx.amount}</td><td>${tx.method}</td><td>₱${tx.fee}</td><td>₱${tx.profit}</td><td>${tx.notes}</td><td>${tx.role}</td>`;
-      tbody.appendChild(tr);
-    });
-  });
-}
+  await db.collection("transactions").add({
 
 // ----- DASHBOARD REALTIME -----
 function setupDashboardRealtime(){
@@ -337,11 +326,22 @@ document.getElementById("transactionForm").addEventListener("submit", async e =>
     customerFee = 20 + Math.floor((totalAmount - 1000)/1000)*20;
   }
 
-  fee = customerFee;
+  fee = customerFee; // displayed as “Fee” in table
   profit = customerFee - gcashFee;
 
-  gcashChange = -(amount + gcashFee);
-  cashChange = amount + customerFee;
+  // Apply cash/gcash changes depending on payment method
+  if (method === "cash") {
+    cashChange = amount + customerFee;       // customer paid in cash
+    gcashChange = -(amount + gcashFee);      // deducted from GCash
+  } else if (method === "gcash") {
+    cashChange = 0;                           // no cash involved
+    gcashChange = -(amount + gcashFee - customerFee); // net GCash change
+  }
+
+  // Store gcashFee separately in the transaction table
+  // optional: if you want to display it
+  gcashFeeForTable = gcashFee;
+}
 
 
 
@@ -367,11 +367,14 @@ document.getElementById("transactionForm").addEventListener("submit", async e =>
       type,
       amount,
       method,
+      gcashFee: gcashFee, // NEW
       fee,
       profit,
       notes,
       role: currentUserRole
     });
+
+
 
     document.getElementById("transactionForm").reset();
 
