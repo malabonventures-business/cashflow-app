@@ -287,78 +287,80 @@ document.getElementById("type").addEventListener("change", () => {
 
   
 // ----- TRANSACTION FORM -----
-document.getElementById("transactionForm").addEventListener("submit", async e=>{
+document.getElementById("transactionForm").addEventListener("submit", async e => {
   e.preventDefault();
 
-  
-      // existing code here
-  const type=document.getElementById("type").value.toLowerCase();
-  const method=document.getElementById("method").value;
-  const notes=document.getElementById("notes").value||"";
-  const amount=parseFloat(document.getElementById("amount").value);
-   } catch(err){
-     alert("Transaction failed: " + err.message);
-     console.error(err);
-                                                            
+  try {
+    const type = document.getElementById("type").value.toLowerCase();
+    const method = document.getElementById("method").value;
+    const notes = document.getElementById("notes").value || "";
+    const amount = parseFloat(document.getElementById("amount").value);
 
-  let fee=0, profit=0;
-  let cashChange=0, gcashChange=0;
+    let fee = 0, profit = 0;
+    let cashChange = 0, gcashChange = 0;
 
+    if (type === "cashin") {
+      fee = calculateFee(amount);
+      profit = fee;
 
-  
-  if (type === "cashin") {
-  fee = calculateFee(amount);
-  profit = fee;
+      // REAL CASH-IN
+      gcashChange = -amount;
+      cashChange = amount - fee;
 
-  // REAL CASH-IN FLOW:
-  // You SEND gcash, you RECEIVE cash
-  gcashChange = -amount;
-  cashChange = amount - fee;
+    } else if (type === "cashout") {
+      fee = calculateFee(amount);
+      profit = fee;
 
-} else if (type === "cashout") {
-    fee = calculateFee(amount);
-    profit = fee;
-    if(method==="cash"){ cashChange = -amount; gcashChange = amount; }
-    else{ gcashChange = -amount; cashChange = amount; }
-  
-        
-  } else if(type === "loading") {
-  // Service fee (same as cash-in rule)
-  const serviceFee = calculateFee(amount);
+      if (method === "cash") {
+        cashChange = -amount;
+        gcashChange = amount;
+      } else {
+        gcashChange = -amount;
+        cashChange = amount;
+      }
 
-  // GCash loading fee
-  const gcashFee = amount < 99 ? 1 : 2; // adjust to 3 if your region requires
+    } else if (type === "loading") {
+      // GCash load rules
+      fee = amount <= 98 ? 1 : 2;
+      profit = 5 - fee;
 
-  fee = serviceFee;
-  profit = serviceFee - gcashFee;
+      gcashChange = -(amount + fee);
+      cashChange = amount;
 
-  // Customer gives CASH, you send GCASH
-  cashChange = amount + serviceFee;
-  gcashChange = -amount - gcashFee;
+    } else if (type === "billspayment") {
+      const billsFee = parseFloat(document.getElementById("billsFee")?.value || 0);
+      fee = billsFee;
+      profit = billsFee;
 
+      gcashChange = -(amount + billsFee);
+      cashChange = amount;
+    }
 
-  } else if (type === "billspayment") {
-  const serviceFee = calculateFee(amount);
-  const gcashFee = parseFloat(document.getElementById("billsGcashFee").value) || 0;
+    await balancesRef.update({
+      cash: firebase.firestore.FieldValue.increment(cashChange),
+      gcash: firebase.firestore.FieldValue.increment(gcashChange),
+      profit: firebase.firestore.FieldValue.increment(profit)
+    });
 
-  fee = serviceFee;
-  profit = serviceFee - gcashFee;
+    await db.collection("transactions").add({
+      date: new Date().toISOString(),
+      type,
+      amount,
+      method,
+      fee,
+      profit,
+      notes,
+      role: currentUserRole
+    });
 
-  // Customer pays CASH, you pay bill via GCASH
-  cashChange = amount + serviceFee;
-  gcashChange = -amount - gcashFee;
-}
+    document.getElementById("transactionForm").reset();
 
-
-  await balancesRef.update({
-    cash: firebase.firestore.FieldValue.increment(cashChange),
-    gcash: firebase.firestore.FieldValue.increment(gcashChange),
-    profit: firebase.firestore.FieldValue.increment(profit)
-  });
-
-  await db.collection("transactions").add({date:new Date().toISOString(),type,amount,method,fee,profit,notes,role:currentUserRole});
-  document.getElementById("transactionForm").reset();
+  } catch (err) {
+    alert("Transaction failed: " + err.message);
+    console.error(err);
+  }
 });
+
 
 // ----- REBALANCE -----
 document.getElementById("rebalanceForm").addEventListener("submit", async e=>{
