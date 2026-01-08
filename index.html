@@ -320,7 +320,7 @@ document.getElementById("transactionForm").addEventListener("submit", async e =>
     
     } else if (type === "loading") {
   // ----- GCash Load Rules -----
-  const gcashFee = amount <= 98 ? 1 : 2;
+  gcashFee = amount <= 98 ? 1 : 2;
 
   // Determine customer fee based on total (amount + gcashFee)
   let customerFee = 5; // default for small amounts
