@@ -319,16 +319,31 @@ document.getElementById("transactionForm").addEventListener("submit", async e =>
         cashChange = amount;
       }
 
+    
+    
     } else if (type === "loading") {
-      // GCash load rules
-      const customerFee = 5;
-      const gcashFee = amount <= 98 ? 1 : 2;
+  // ----- GCash Load Rules -----
+  const gcashFee = amount <= 98 ? 1 : 2;
 
-      fee = gcashFee;
-      profit = customerFee - gcashFee;
+  // Determine customer fee based on total (amount + gcashFee)
+  let customerFee = 5; // default for small amounts
+  const totalAmount = amount + gcashFee;
 
-      gcashChange = -(amount + gcashFee);
-      cashChange = amount + customerFee;
+  if (totalAmount >= 100 && totalAmount <= 500) {
+    customerFee = 10;
+  } else if (totalAmount > 500 && totalAmount <= 1000) {
+    customerFee = 20;
+  } else if (totalAmount > 1000) {
+    customerFee = 20 + Math.floor((totalAmount - 1000)/1000)*20;
+  }
+
+  fee = customerFee;
+  profit = customerFee - gcashFee;
+
+  gcashChange = -(amount + gcashFee);
+  cashChange = amount + customerFee;
+}
+
 
 
     } else if (type === "billspayment") {
