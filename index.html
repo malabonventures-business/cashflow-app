@@ -321,14 +321,19 @@ document.getElementById("transactionForm").addEventListener("submit", async e =>
 
     } else if (type === "loading") {
       // GCash load rules
-      fee = amount <= 98 ? 1 : 2;
-      profit = 5 - fee;
+      const customerFee = 5;
+      const gcashFee = amount <= 98 ? 1 : 2;
 
-      gcashChange = -(amount + fee);
-      cashChange = amount;
+      fee = gcashFee;
+      profit = customerFee - gcashFee;
+
+      gcashChange = -(amount + gcashFee);
+      cashChange = amount + customerFee;
+
 
     } else if (type === "billspayment") {
-      const billsFee = parseFloat(document.getElementById("billsFee")?.value || 0);
+      const billsFeeInput = document.getElementById("billsGcashFee");
+      const billsFee = billsFeeInput ? parseFloat(billsFeeInput.value) || 0 : 0;
       fee = billsFee;
       profit = billsFee;
 
