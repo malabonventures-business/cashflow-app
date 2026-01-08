@@ -305,12 +305,21 @@ document.getElementById("transactionForm").addEventListener("submit", async e=>{
     if(method==="cash"){ cashChange = -amount; gcashChange = amount; }
     else{ gcashChange = -amount; cashChange = amount; }
   }
-      else if(type==="loading"){
-    fee = 2;
-    profit = amount - fee;
-    if(method==="gcash"){ gcashChange = -(amount+fee); cashChange = amount; }
-    else{ cashChange = -(amount+fee); gcashChange = amount; }
-  }
+      else if(type === "loading") {
+  // Service fee (same as cash-in rule)
+  const serviceFee = calculateFee(amount);
+
+  // GCash loading fee
+  const gcashFee = amount < 99 ? 1 : 2; // adjust to 3 if your region requires
+
+  fee = serviceFee;
+  profit = serviceFee - gcashFee;
+
+  // Customer gives CASH, you send GCASH
+  cashChange = amount + serviceFee;
+  gcashChange = -amount - gcashFee;
+}
+
       else if(type==="billspayment"){
     fee = calculateFee(amount);
     profit = fee;
