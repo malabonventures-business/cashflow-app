@@ -299,10 +299,12 @@ document.getElementById("transactionForm").addEventListener("submit", async e =>
     if (type === "cashin") {
       fee = calculateFee(amount);
       profit = fee;
+      
 
       // REAL CASH-IN
       gcashChange = -amount;
       cashChange = amount - fee;
+      gcashFee = 0; // explicitly
 
     } else if (type === "cashout") {
       fee = calculateFee(amount);
@@ -315,7 +317,7 @@ document.getElementById("transactionForm").addEventListener("submit", async e =>
         gcashChange = -amount;
         cashChange = amount;
       }
-
+      gcashFee = 0; // explicitly
     
     
     } else if (type === "loading") {
@@ -362,6 +364,7 @@ document.getElementById("transactionForm").addEventListener("submit", async e =>
 
       gcashChange = -(amount + billsFee);
       cashChange = amount;
+      gcashFee = billsFee; // <-- explicitly store it
     }
 
     await balancesRef.update({
