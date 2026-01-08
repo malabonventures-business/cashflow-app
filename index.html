@@ -289,6 +289,8 @@ document.getElementById("type").addEventListener("change", () => {
 // ----- TRANSACTION FORM -----
 document.getElementById("transactionForm").addEventListener("submit", async e=>{
   e.preventDefault();
+
+  
       // existing code here
   const type=document.getElementById("type").value.toLowerCase();
   const method=document.getElementById("method").value;
@@ -304,7 +306,7 @@ document.getElementById("transactionForm").addEventListener("submit", async e=>{
 
 
   
-  if(type==="cashin"){
+  if (type === "cashin") {
   fee = calculateFee(amount);
   profit = fee;
 
@@ -312,14 +314,15 @@ document.getElementById("transactionForm").addEventListener("submit", async e=>{
   // You SEND gcash, you RECEIVE cash
   gcashChange = -amount;
   cashChange = amount - fee;
-}
-      else if(type==="cashout"){
+
+} else if (type === "cashout") {
     fee = calculateFee(amount);
     profit = fee;
     if(method==="cash"){ cashChange = -amount; gcashChange = amount; }
     else{ gcashChange = -amount; cashChange = amount; }
-  }
-      else if(type === "loading") {
+  
+        
+  } else if(type === "loading") {
   // Service fee (same as cash-in rule)
   const serviceFee = calculateFee(amount);
 
@@ -332,9 +335,9 @@ document.getElementById("transactionForm").addEventListener("submit", async e=>{
   // Customer gives CASH, you send GCASH
   cashChange = amount + serviceFee;
   gcashChange = -amount - gcashFee;
-}
 
-      else if (type === "billspayment") {
+
+  } else if (type === "billspayment") {
   const serviceFee = calculateFee(amount);
   const gcashFee = parseFloat(document.getElementById("billsGcashFee").value) || 0;
 
