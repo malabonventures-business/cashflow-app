@@ -102,7 +102,15 @@
     <table id="transactionTable">
       <thead>
         <tr>
-          <th>Date</th><th>Type</th><th>Amount</th><th>Method</th><th>Fee</th><th>Profit</th><th>Notes</th><th>By</th>
+          <th>Date</th>
+          <th>Type</th>
+          <th>Amount</th>
+          <th>Method</th>
+          <th>GCash Fee</th>  <!-- NEW -->
+          <th>Fee</th>
+          <th>Profit</th>
+          <th>Notes</th>
+          <th>By</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -381,6 +389,38 @@ document.getElementById("transactionForm").addEventListener("submit", async e =>
     console.error(err);
   }
 });
+
+
+  // ----- TRANSACTION TABLE -----
+function setupTransactionsListener(){
+  const tbody = document.querySelector("#transactionTable tbody");
+
+  db.collection("transactions").orderBy("date","desc").onSnapshot(snap=>{
+    tbody.innerHTML = ""; // clear table
+
+    snap.forEach(doc => {
+      const tx = doc.data();
+      const gcashFee = tx.gcashFee || 0; // default to 0 if not present
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${new Date(tx.date).toLocaleString()}</td>
+        <td>${tx.type}</td>
+        <td>₱${tx.amount}</td>
+        <td>${tx.method}</td>
+        <td>₱${gcashFee}</td>  <!-- GCash Fee column -->
+        <td>₱${tx.fee}</td>
+        <td>₱${tx.profit}</td>
+        <td>${tx.notes}</td>
+        <td>${tx.role}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  });
+}
+
+// call this after login
+setupTransactionsListener();
 
 
 // ----- REBALANCE -----
