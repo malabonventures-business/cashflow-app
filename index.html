@@ -111,6 +111,7 @@
           <th>Profit</th>
           <th>Notes</th>
           <th>By</th>
+          <th id="actionHeader" style="display:none;">Action</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -206,10 +207,34 @@ function applyRoleUI(role){
   const profitSection = document.getElementById("profitSection");
   const ownerTab = document.getElementById("ownerSettingsTab");
   const clearBtn = document.getElementById("clearResetBtn");
-  cashInOut.style.display="none"; rebalance.style.display="none"; profitSection.style.display="none"; ownerTab.style.display="none"; clearBtn.style.display="none";
-  if(role==="staff"){ cashInOut.style.display="block"; }
-  if(role==="owner"){ cashInOut.style.display="block"; rebalance.style.display="block"; profitSection.style.display="block"; ownerTab.style.display="inline-block"; clearBtn.style.display="inline-block"; }
+  const actionHeader = document.getElementById("actionHeader");
+
+  // HIDE ALL FIRST
+  cashInOut.style.display = "none";
+  rebalance.style.display = "none";
+  profitSection.style.display = "none";
+  ownerTab.style.display = "none";
+  clearBtn.style.display = "none";
+  if (actionHeader) actionHeader.style.display = "none";
+
+  // STAFF
+  if (role === "staff") {
+    cashInOut.style.display = "block";
+  }
+
+  // OWNER
+  if (role === "owner") {
+    cashInOut.style.display = "block";
+    rebalance.style.display = "block";
+    profitSection.style.display = "block";
+    ownerTab.style.display = "inline-block";
+    clearBtn.style.display = "inline-block";
+
+    // ✅ SHOW DELETE COLUMN
+    if (actionHeader) actionHeader.style.display = "table-cell";
+  }
 }
+  
 
 // ----- LOGIN FORM -----
 document.getElementById("loginForm").addEventListener("submit", e=>{
@@ -367,6 +392,34 @@ document.getElementById("transactionForm").addEventListener("submit", async e =>
       gcashFee = billsFee; // <-- explicitly store it
     }
 
+    
+
+                  // ----- BALANCE SAFETY CHECK -----
+const balanceSnap = await balancesRef.get();
+if (!balanceSnap.exists) {
+  alert("Balances not initialized!");
+  return;
+}
+
+const currentCash = balanceSnap.data().cash || 0;
+const currentGcash = balanceSnap.data().gcash || 0;
+
+// simulate result
+const newCash = currentCash + cashChange;
+const newGcash = currentGcash + gcashChange;
+
+// ❌ BLOCK NEGATIVE BALANCE
+if (newCash < 0) {
+  alert("❌ Transaction denied: Not enough CASH balance.");
+  return;
+}
+
+if (newGcash < 0) {
+  alert("❌ Transaction denied: Not enough GCASH balance.");
+  return;
+}
+
+    
     await balancesRef.update({
       cash: firebase.firestore.FieldValue.increment(cashChange),
       gcash: firebase.firestore.FieldValue.increment(gcashChange),
