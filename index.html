@@ -419,7 +419,7 @@ if (newGcash < 0) {
   return;
 }
 
-    
+    // ----- APPLY REVERSAL -----
     await balancesRef.update({
       cash: firebase.firestore.FieldValue.increment(cashChange),
       gcash: firebase.firestore.FieldValue.increment(gcashChange),
@@ -449,6 +449,110 @@ if (newGcash < 0) {
 });
 
 
+  
+  // ===============================
+// OWNER ONLY: DELETE TRANSACTION
+// ===============================
+async function deleteTransaction(txId) {
+  if (!confirm("⚠️ Delete this transaction? Balances will be reversed.")) return;
+
+  const reason = prompt("Enter DELETE REASON (required):");
+  if (!reason || reason.trim().length < 5) {
+    alert("❌ Delete reason is required (min 5 chars).");
+    return;
+  }
+
+  const confirm2 = prompt("Type DELETE to confirm:");
+  if (confirm2 !== "DELETE") return;
+
+  const txRef = db.collection("transactions").doc(txId);
+  const txSnap = await txRef.get();
+
+  if (!txSnap.exists) {
+    alert("Transaction not found.");
+    return;
+  }
+
+  const tx = txSnap.data();
+
+  let cashReverse = 0;
+  let gcashReverse = 0;
+  let profitReverse = 0;
+
+  switch (tx.type) {
+    case "cashin":
+      cashReverse = -(tx.amount - tx.fee);
+      gcashReverse = tx.amount;
+      profitReverse = -tx.profit;
+      break;
+
+    case "cashout":
+      if (tx.method === "cash") {
+        cashReverse = tx.amount;
+        gcashReverse = -tx.amount;
+      } else {
+        cashReverse = -tx.amount;
+        gcashReverse = tx.amount;
+      }
+      profitReverse = -tx.profit;
+      break;
+
+    case "loading":
+      if (tx.method === "cash") {
+        cashReverse = -(tx.amount + tx.fee);
+        gcashReverse = tx.amount + (tx.gcashFee || 0);
+      } else {
+        gcashReverse = tx.amount + (tx.gcashFee || 0) - tx.fee;
+      }
+      profitReverse = -tx.profit;
+      break;
+
+    case "billspayment":
+      cashReverse = -tx.amount;
+      gcashReverse = tx.amount + tx.fee;
+      profitReverse = -tx.profit;
+      break;
+
+    default:
+      alert("Cannot delete this transaction.");
+      return;
+  }
+
+  const balSnap = await balancesRef.get();
+  const b = balSnap.data();
+
+  if ((b.cash + cashReverse) < 0 || (b.gcash + gcashReverse) < 0) {
+    alert("❌ Cannot delete: balance would go negative.");
+    return;
+  }
+
+  await balancesRef.update({
+    cash: firebase.firestore.FieldValue.increment(cashReverse),
+    gcash: firebase.firestore.FieldValue.increment(gcashReverse),
+    profit: firebase.firestore.FieldValue.increment(profitReverse)
+  });
+
+  // AUDIT LOG
+  await db.collection("audit_logs").add({
+    action: "DELETE_TRANSACTION",
+    transactionId: txId,
+    deletedType: tx.type,
+    deletedAmount: tx.amount,
+    deletedFee: tx.fee,
+    deletedProfit: tx.profit,
+    deletedGcashFee: tx.gcashFee || 0,
+    reason: reason.trim(),
+    deletedBy: currentUserRole,
+    deletedByUid: auth.currentUser.uid,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  await txRef.delete();
+
+  alert("✅ Transaction deleted. Audit log saved.");
+}
+
+  
   // ----- TRANSACTION TABLE -----
 function setupTransactionsListener(){
   const tbody = document.querySelector("#transactionTable tbody");
@@ -460,6 +564,12 @@ function setupTransactionsListener(){
       const tx = doc.data();
       const gcashFee = tx.gcashFee || 0; // default to 0 if not present
 
+      
+  let deleteBtn = "";
+  if (currentUserRole === "owner" && tx.type !== "rebalance") {
+    deleteBtn = `<button onclick="deleteTransaction('${doc.id}')">🗑 Delete</button>`;
+  }
+      
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td>${new Date(tx.date).toLocaleString()}</td>
@@ -471,6 +581,7 @@ function setupTransactionsListener(){
         <td>₱${tx.profit}</td>
         <td>${tx.notes}</td>
         <td>${tx.role}</td>
+        <td>${deleteBtn}</td>
       `;
       tbody.appendChild(tr);
     });
