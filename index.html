@@ -1064,11 +1064,16 @@ firebase.auth().onAuthStateChanged(async user => {
 setupTransactionsListener();
 initializeTabs();
 
-// OWNER ONLY FEATURES
+// ✅ BOTH STAFF + OWNER NEED BALANCE LISTENER
+setupDashboardRealtime();
+
+// 🔒 OWNER ONLY
 if (currentUserRole === "owner") {
-  setupDashboardRealtime(); // listens to balances
-  runDailyAudit();         // audit uses balances + logs
-}
+  async function runDailyAudit() {
+  return; // 🔒 DISABLED – staff can edit balances
+}}
+
+
 
 
   } catch (err) {
