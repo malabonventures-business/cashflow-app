@@ -151,21 +151,45 @@
   </div>
 
   <!-- OWNER SETTINGS -->
-  <div id="ownerSettings" class="tabcontent">
-    <h2>Owner Settings</h2>
-    <form id="manualBalanceForm">
-      <label>Cash Balance</label>
-      <input type="number" id="manualCash" step="0.01" required><br><br>
-      <label>GCash Balance</label>
-      <input type="number" id="manualGCash" step="0.01" required><br><br>
-      <button type="submit">Update Balances</button>
-    </form>
-    <div style="border:2px solid #e74c3c; padding:15px; border-radius:10px; margin-top:20px;">
-      <h3 style="color:#e74c3c;">⚠️ Danger Zone</h3>
-      <p>This will permanently reset all balances and transactions.</p>
-      <button id="clearResetBtn" onclick="confirmClear()" style="background:#e74c3c;color:white;border:none;padding:10px 16px;border-radius:8px;">RESET SYSTEM</button>
-    </div>
+<div id="ownerSettings" class="tabcontent">
+  <h2>Owner Settings</h2>
+
+  <!-- ✅ OWNER BALANCE ANCHOR -->
+  <h3>Owner Balance Anchor (Admin Only)</h3>
+  <p style="font-size:13px;color:#555;">
+    Set the real physical balances ONCE to anchor audit calculations.
+  </p>
+
+  <input id="knownCash" type="number" placeholder="Current Cash">
+  <input id="knownGcash" type="number" placeholder="Current GCash">
+  <br><br>
+  <button onclick="setKnownBalance()">SET CURRENT BALANCE</button>
+
+  <hr>
+
+  <!-- MANUAL BALANCE (OVERRIDE) -->
+  <form id="manualBalanceForm">
+    <label>Cash Balance</label>
+    <input type="number" id="manualCash" step="0.01" required><br><br>
+
+    <label>GCash Balance</label>
+    <input type="number" id="manualGCash" step="0.01" required><br><br>
+
+    <button type="submit">Update Balances</button>
+  </form>
+
+  <!-- ⚠️ DANGER ZONE -->
+  <div style="border:2px solid #e74c3c; padding:15px; border-radius:10px; margin-top:20px;">
+    <h3 style="color:#e74c3c;">⚠️ Danger Zone</h3>
+    <p>This will permanently reset all balances and transactions.</p>
+    <button id="clearResetBtn"
+      onclick="confirmClear()"
+      style="background:#e74c3c;color:white;border:none;padding:10px 16px;border-radius:8px;">
+      RESET SYSTEM
+    </button>
   </div>
+</div>
+
 
 </div>
 
@@ -350,10 +374,11 @@ document.getElementById("transactionForm").addEventListener("submit", async e =>
     if (type === "cashin") {
       fee = calculateFee(amount);
       profit = fee;
-      
-      gcashChange = -amount;
-      cashChange = amount;
-      gcashFee = 0; // explicitly
+
+        // base transaction
+      cashChange = amount;     // customer gives cash
+      gcashChange = -amount;  // you send gcash
+
 
       // CASH OUT
     } else if (type === "cashout") {
@@ -361,11 +386,10 @@ document.getElementById("transactionForm").addEventListener("submit", async e =>
        profit = fee;
 
       // you give CASH
-        cashChange = -amount; // fee added to cash
+        cashChange = -amount;    // you give cash
       // customer sends GCASH
-        gcashChange = amount;
-        gcashFee = 0; //explicitly
-    
+        gcashChange = amount;   // customer sends gcash (BASE only)
+
 
     
     
@@ -443,14 +467,21 @@ if (newGcash < 0) {
   return;
 }
 
-    // ===== APPLY FEE DESTINATION =====
-if (fee > 0) {
+   // ===== APPLY FEE DESTINATION (SAFE) =====
+if (
+  fee > 0 &&
+  (type === "cashin" ||
+   type === "cashout" ||
+   type === "loading" ||
+   type === "billspayment")
+) {
   if (feeDestination === "cash") {
     cashChange += fee;
   } else if (feeDestination === "gcash") {
     gcashChange += fee;
   }
 }
+
 
 // ----- APPLY REVERSAL -----
 await balancesRef.update({
@@ -486,6 +517,9 @@ await balancesRef.update({
 });
 
 
+
+
+
   
 
   
@@ -519,7 +553,9 @@ async function fixOldCashFees() {
     if (tx.feeAppliedToCash === true) continue;
 
     await balancesRef.update({
-      cash: firebase.firestore.FieldValue.increment(tx.fee)
+      cash: firebase.firestore.FieldValue.increment(tx.fee),
+      openingCash,
+      openingGcash
     });
 
     await doc.ref.update({
@@ -539,7 +575,91 @@ async function fixOldCashFees() {
 }
 
 
+      async function computeOpeningBalance() {
+  if (currentUserRole !== "owner") return;
 
+  const balSnap = await balancesRef.get();
+  const balances = balSnap.data();
+
+  let deltaCash = 0;
+  let deltaGcash = 0;
+
+  const snap = await db.collection("transactions").get();
+
+  snap.forEach(doc => {
+    const tx = doc.data();
+
+    if (tx.type === "cashin") {
+      deltaCash += tx.amount;
+      deltaGcash -= tx.amount;
+    }
+
+    if (tx.type === "cashout") {
+      deltaCash -= tx.amount;
+      deltaGcash += tx.amount;
+    }
+
+    if (tx.type === "loading") {
+      if (tx.method === "cash") {
+        deltaCash += tx.amount + tx.fee;
+        deltaGcash -= tx.amount + (tx.gcashFee || 0);
+      } else {
+        deltaGcash -= tx.amount + (tx.gcashFee || 0) - tx.fee;
+      }
+    }
+
+    if (tx.type === "billspayment") {
+      deltaCash += tx.amount;
+      deltaGcash -= tx.amount + tx.fee;
+    }
+
+    if (tx.fee > 0 && (tx.type === "cashin" || tx.type === "cashout")) {
+      if ((tx.feeDestination || "cash") === "cash") {
+        deltaCash += tx.fee;
+      } else {
+        deltaGcash += tx.fee;
+      }
+    }
+  });
+
+  const openingCash = balances.cash - deltaCash;
+  const openingGcash = balances.gcash - deltaGcash;
+
+  alert(
+    "📌 COMPUTED OPENING BALANCE\n\n" +
+    `Cash: ₱${openingCash}\n` +
+    `GCash: ₱${openingGcash}\n\n` +
+    "Verify physically before saving."
+  );
+}
+
+
+
+
+// ===== BALANCE STORAGE =====
+let balances = JSON.parse(localStorage.getItem("balances")) || {};
+
+// ===== OWNER BALANCE SETTER =====
+function setKnownBalance() {
+  balances.knownCash = Number(document.getElementById("knownCash").value);
+  balances.knownGcash = Number(document.getElementById("knownGcash").value);
+  balances.setAt = new Date().toISOString();
+
+  localStorage.setItem("balances", JSON.stringify(balances));
+  alert("Owner balance saved.");
+}
+
+
+
+
+
+
+
+
+  
+          // ----------AUDIT----------
+      let expectedCash = balances.knownCash ?? 0;
+      let expectedGcash = balances.knownGcash ?? 0;
   async function runDailyAudit() {
   if (currentUserRole !== "owner") return;
 
@@ -547,8 +667,9 @@ async function fixOldCashFees() {
   if (!balSnap.exists) return;
 
   const balances = balSnap.data();
-  let expectedCash = 0;
-  let expectedGcash = 0;
+
+  let expectedCash = balances.openingCash ?? 0;
+  let expectedGcash = balances.openingGcash ?? 0;
 
   const snap = await db.collection("transactions").get();
 
@@ -566,19 +687,18 @@ async function fixOldCashFees() {
     }
 
     if (tx.type === "loading") {
-  if (tx.method === "cash") {
-    expectedCash += tx.amount + tx.fee;
-    expectedGcash -= tx.amount + (tx.gcashFee || 0);
-  } else {
-    expectedGcash -= tx.amount + (tx.gcashFee || 0) - tx.fee;
-  }
-}
+      if (tx.method === "cash") {
+        expectedCash += tx.amount + tx.fee;
+        expectedGcash -= tx.amount + (tx.gcashFee || 0);
+      } else {
+        expectedGcash -= tx.amount + (tx.gcashFee || 0) - tx.fee;
+      }
+    }
 
-if (tx.type === "billspayment") {
-  expectedCash += tx.amount;
-  expectedGcash -= tx.amount + tx.fee;
-}
-
+    if (tx.type === "billspayment") {
+      expectedCash += tx.amount;
+      expectedGcash -= tx.amount + tx.fee;
+    }
 
     if (tx.fee > 0 && (tx.type === "cashin" || tx.type === "cashout")) {
       if ((tx.feeDestination || "cash") === "cash") {
@@ -595,15 +715,14 @@ if (tx.type === "billspayment") {
   ) {
     alert(
       "⚠️ DAILY AUDIT WARNING\n\n" +
-      `Expected Cash: ₱${expectedCash}\n` +
-      `Actual Cash: ₱${balances.cash}\n\n` +
-      `Expected GCash: ₱${expectedGcash}\n` +
-      `Actual GCash: ₱${balances.gcash}`
+      `Expected Cash: ₱${expectedCash}\nActual Cash: ₱${balances.cash}\n\n` +
+      `Expected GCash: ₱${expectedGcash}\nActual GCash: ₱${balances.gcash}`
     );
   } else {
     console.log("✅ Daily audit passed");
   }
 }
+
 
   
   
