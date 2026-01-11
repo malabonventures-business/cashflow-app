@@ -951,31 +951,43 @@ function logout(){
 }
 
 // ----- AUTH STATE -----
-firebase.auth().onAuthStateChanged(user=>{
-  if(!user) return;
+firebase.auth().onAuthStateChanged(async user => {
+  if (!user) return;
 
-  db.collection("users").doc(user.uid).get().then(doc=>{
-    if(!doc.exists){
-      alert("No role!");
-      auth.signOut();
+  try {
+    // 🔄 FORCE REFRESH TOKEN (IMPORTANT FOR OWNER CLAIMS)
+    await user.getIdToken(true);
+
+    const userDoc = await db.collection("users").doc(user.uid).get();
+    if (!userDoc.exists) {
+      alert("No role assigned.");
+      await auth.signOut();
       return;
     }
 
-    currentUserRole = doc.data().role;
+    currentUserRole = userDoc.data().role;
 
-    document.getElementById("loginSection").style.display="none";
-    document.getElementById("appSection").style.display="block";
+    // SHOW APP
+    document.getElementById("loginSection").style.display = "none";
+    document.getElementById("appSection").style.display = "block";
 
+    // APPLY ROLE UI
     applyRoleUI(currentUserRole);
+
+    // ✅ START LISTENERS ONLY AFTER ROLE IS CONFIRMED
     setupDashboardRealtime();
     setupTransactionsListener();
     initializeTabs();
 
-    // ✅ RUN AUDIT AFTER ROLE IS CONFIRMED
+    // ✅ OWNER-ONLY AUDIT
     if (currentUserRole === "owner") {
       runDailyAudit();
     }
-  });
+
+  } catch (err) {
+    console.error("Auth init error:", err);
+    alert("Initialization failed. Please reload.");
+  }
 });
 
 </script>
