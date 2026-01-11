@@ -906,42 +906,54 @@ async function deleteTransaction(txId) {
 }
 
   
-  // ----- TRANSACTION TABLE -----
+ // ----- TRANSACTION TABLE -----
 function setupTransactionsListener(){
   const tbody = document.querySelector("#transactionTable tbody");
 
-  db.collection("transactions").orderBy("date","desc").onSnapshot(snap=>{
-    tbody.innerHTML = ""; // clear table
+  let query = db.collection("transactions").orderBy("date","desc");
+
+  query.onSnapshot(snap=>{
+    tbody.innerHTML = "";
 
     snap.forEach(doc => {
       const tx = doc.data();
-      const gcashFee = tx.gcashFee || 0; // default to 0 if not present
+      const gcashFee = tx.gcashFee || 0;
 
-      
-  let deleteBtn = "";
-  if (currentUserRole === "owner" && tx.type !== "rebalance") {
-    deleteBtn = `
-    <button onclick="this.disabled=true; deleteTransaction('${doc.id}')">
-  🗑 Delete
-</button>`;
-      } // ✅ <-- THIS WAS MISSING
-      
       const tr = document.createElement("tr");
+
       tr.innerHTML = `
         <td>${new Date(tx.date).toLocaleString()}</td>
         <td>${tx.type}</td>
         <td>₱${tx.amount}</td>
         <td>${tx.method}</td>
-        <td>₱${gcashFee}</td>  <!-- GCash Fee column -->
-        <td>₱${tx.fee}</td>
+        <td>₱${gcashFee}</td>
+        <td>₱${tx.fee || 0}</td>
         <td>${tx.feeDestination || "cash"}</td>
-        <td>₱${tx.profit}</td>
-        <td>${tx.notes}</td>
-        <td>${tx.role}</td>
-        ${currentUserRole === "owner" ? `<td>${deleteBtn}</td>` : ``}
+
+        ${
+          currentUserRole === "owner"
+            ? `<td>₱${tx.profit || 0}</td>`
+            : `<td>—</td>`
+        }
+
+        <td>${tx.notes || ""}</td>
+        <td>${tx.role || ""}</td>
+
+        ${
+          currentUserRole === "owner"
+            ? `<td>
+                <button onclick="this.disabled=true; deleteTransaction('${doc.id}')">
+                  🗑 Delete
+                </button>
+              </td>`
+            : ``
+        }
       `;
+
       tbody.appendChild(tr);
     });
+  }, err => {
+    console.error("Transaction listener error:", err);
   });
 }
 
