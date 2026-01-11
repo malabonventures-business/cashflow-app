@@ -908,18 +908,37 @@ async function deleteTransaction(txId) {
 }
 
   
- // ----- TRANSACTION TABLE -----
+// ----- TRANSACTION TABLE -----
 function setupTransactionsListener(){
   const tbody = document.querySelector("#transactionTable tbody");
 
+  // ✅ SHOW ACTION HEADER FOR OWNER
+  const actionHeader = document.getElementById("actionHeader");
+  if (currentUserRole === "owner" && actionHeader) {
+    actionHeader.style.display = "table-cell";
+  }
+
   db.collection("transactions")
-    .where("date", "!=", null)
     .orderBy("date", "desc")
     .onSnapshot(snap => {
       tbody.innerHTML = "";
 
       snap.forEach(doc => {
         const tx = doc.data();
+
+        // 🗑 DELETE BUTTON (OWNER ONLY)
+        let deleteCell = "";
+        if (currentUserRole === "owner" && tx.type !== "rebalance") {
+          deleteCell = `
+            <td>
+              <button onclick="deleteTransaction('${doc.id}')">
+                🗑 Delete
+              </button>
+            </td>
+          `;
+        } else if (currentUserRole === "owner") {
+          deleteCell = `<td>-</td>`;
+        }
 
         const tr = document.createElement("tr");
         tr.innerHTML = `
@@ -930,9 +949,10 @@ function setupTransactionsListener(){
           <td>₱${tx.gcashFee || 0}</td>
           <td>₱${tx.fee || 0}</td>
           <td>${tx.feeDestination || "cash"}</td>
-          <td>${currentUserRole === "owner" ? "₱"+tx.profit : "-"}</td>
+          <td>${currentUserRole === "owner" ? "₱"+(tx.profit||0) : "-"}</td>
           <td>${tx.notes || ""}</td>
           <td>${tx.role}</td>
+          ${currentUserRole === "owner" ? deleteCell : ""}
         `;
         tbody.appendChild(tr);
       });
@@ -940,6 +960,7 @@ function setupTransactionsListener(){
       console.error("Transaction listener error:", err.message);
     });
 }
+
 
 
 // call this after login
