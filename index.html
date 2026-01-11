@@ -320,23 +320,22 @@ document.getElementById("transactionForm").addEventListener("submit", async e =>
     let cashChange = 0, gcashChange = 0;
        let gcashFee = 0; // <-- MOVE TO OUTER SCOPE
 
-
+    // CASH IN
     if (type === "cashin") {
       fee = calculateFee(amount);
       profit = fee;
       
-
-      // REAL CASH-IN
       gcashChange = -amount;
-      cashChange = amount - fee;
+      cashChange = amount + fee;
       gcashFee = 0; // explicitly
 
+      // CASH OUT
     } else if (type === "cashout") {
       fee = calculateFee(amount);
       profit = fee;
 
       if (method === "cash") {
-        cashChange = -amount;
+        cashChange = -amount + fee;
         gcashChange = amount;
       } else {
         gcashChange = -amount;
@@ -375,7 +374,7 @@ document.getElementById("transactionForm").addEventListener("submit", async e =>
 
   // Store gcashFee separately in the transaction table
   // optional: if you want to display it
-  gcashFeeForTable = gcashFee;
+
 
 
 
