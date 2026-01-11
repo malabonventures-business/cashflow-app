@@ -253,7 +253,8 @@ function applyRoleUI(role){
   // STAFF
   if (role === "staff") {
     cashInOut.style.display = "block";
-  }
+    profitSection.style.display = "none"; // staff cannot see profit
+}
 
   // OWNER
   if (role === "owner") {
@@ -294,44 +295,56 @@ function initializeTabs(){
 }
 
 // ----- DASHBOARD REALTIME -----
-// ----- DASHBOARD REALTIME (OWNER ONLY) -----
-function setupDashboardRealtime() {
+function setupDashboardRealtime(){
 
-  if (currentUserRole !== "owner") return;
-
-  balancesRef.onSnapshot(snap => {
-    if (!snap.exists) return;
-
+  // ===============================
+  // BALANCES (OWNER + STAFF)
+  // ===============================
+  balancesRef.onSnapshot(snap=>{
+    if(!snap.exists) return;
     const data = snap.data();
 
-    document.getElementById("dashCash").innerText   = `₱${data.cash || 0}`;
+    document.getElementById("dashCash").innerText  = `₱${data.cash || 0}`;
     document.getElementById("dashGcash").innerText = `₱${data.gcash || 0}`;
-    document.getElementById("dashProfit").innerText= `₱${data.profit || 0}`;
     document.getElementById("dashTotal").innerText =
       `₱${(data.cash || 0) + (data.gcash || 0)}`;
+
+    if (currentUserRole === "owner") {
+      document.getElementById("dashProfit").innerText =
+        `₱${data.profit || 0}`;
+    }
   });
 
-}
-
+  // ===============================
+  // PROFIT TOTALS (OWNER ONLY)
+  // ===============================
+  if (currentUserRole !== "owner") return;
 
   db.collection("transactions").onSnapshot(snap=>{
     let daily=0,weekly=0,monthly=0,yearly=0;
     const now=new Date();
-    const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(now.getDate()-7);
+    const sevenDaysAgo=new Date();
+    sevenDaysAgo.setDate(now.getDate()-7);
+
     snap.forEach(doc=>{
-      const tx=doc.data(); if(tx.type==="rebalance") return;
-      const txDate=new Date(tx.date);
-      if(txDate.toDateString()===now.toDateString()) daily+=tx.profit;
-      if(txDate>=sevenDaysAgo) weekly+=tx.profit;
-      if(txDate.getMonth()===now.getMonth() && txDate.getFullYear()===now.getFullYear()) monthly+=tx.profit;
-      if(txDate.getFullYear()===now.getFullYear()) yearly+=tx.profit;
+      const tx=doc.data();
+      if(tx.type==="rebalance") return;
+
+      const d=new Date(tx.date);
+      if(d.toDateString()===now.toDateString()) daily+=tx.profit;
+      if(d>=sevenDaysAgo) weekly+=tx.profit;
+      if(d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear())
+        monthly+=tx.profit;
+      if(d.getFullYear()===now.getFullYear()) yearly+=tx.profit;
     });
-    document.getElementById("dailyTotal").innerText=`₱${daily}`;
-    document.getElementById("weeklyTotal").innerText=`₱${weekly}`;
-    document.getElementById("monthlyTotal").innerText=`₱${monthly}`;
-    document.getElementById("yearlyTotal").innerText=`₱${yearly}`;
+
+    document.getElementById("dailyTotal").innerText   = `₱${daily}`;
+    document.getElementById("weeklyTotal").innerText  = `₱${weekly}`;
+    document.getElementById("monthlyTotal").innerText = `₱${monthly}`;
+    document.getElementById("yearlyTotal").innerText  = `₱${yearly}`;
   });
 }
+
 
 // ----- FEE CALC -----
 function calculateFee(amount){
