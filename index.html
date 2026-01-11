@@ -843,11 +843,10 @@ function setupTransactionsListener(){
   let deleteBtn = "";
   if (currentUserRole === "owner" && tx.type !== "rebalance") {
     deleteBtn = `
-    <button
-          onclick="this.disabled=true; deleteTransaction('${doc.id}')"
->
+    <button onclick="this.disabled=true; deleteTransaction('${doc.id}')">
   🗑 Delete
 </button>`;
+      } // ✅ <-- THIS WAS MISSING
       
       const tr = document.createElement("tr");
       tr.innerHTML = `
