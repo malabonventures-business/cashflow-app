@@ -635,19 +635,6 @@ async function fixOldCashFees() {
 
 
 
-// ===== BALANCE STORAGE =====
-let balances = JSON.parse(localStorage.getItem("balances")) || {};
-
-// ===== OWNER BALANCE SETTER =====
-function setKnownBalance() {
-  balances.knownCash = Number(document.getElementById("knownCash").value);
-  balances.knownGcash = Number(document.getElementById("knownGcash").value);
-  balances.setAt = new Date().toISOString();
-
-  localStorage.setItem("balances", JSON.stringify(balances));
-  alert("Owner balance saved.");
-}
-
 
 
 
@@ -723,7 +710,39 @@ function setKnownBalance() {
 }
 
 
-  
+  // ===============================
+// OWNER BALANCE ANCHOR (FIRESTORE)
+// ===============================
+async function setKnownBalance() {
+  if (currentUserRole !== "owner") {
+    alert("Owner only");
+    return;
+  }
+
+  const cash = Number(document.getElementById("knownCash").value);
+  const gcash = Number(document.getElementById("knownGcash").value);
+
+  if (isNaN(cash) || isNaN(gcash) || cash < 0 || gcash < 0) {
+    alert("❌ Invalid balance values");
+    return;
+  }
+
+  try {
+    await db.collection("balance_anchor").doc("current").set({
+      cash: cash,
+      gcash: gcash,
+      setBy: auth.currentUser.uid,
+      role: currentUserRole,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    alert("✅ Balance anchor saved (Firestore).");
+  } catch (err) {
+    console.error(err);
+    alert("❌ Failed to save balance anchor.");
+  }
+}
+
   
   
   // ===============================
