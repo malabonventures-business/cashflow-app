@@ -200,6 +200,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-analytics-compat.js"></script>
 
 <script>
+  let deletingTx = false;
+
 const firebaseConfig = {
   apiKey: "AIzaSyDF5BuG7cfbLhyIWJkgzKVNmXH9KtB4_AQ",
   authDomain: "cashflowsystem-e8597.firebaseapp.com",
@@ -472,8 +474,6 @@ if (
   fee > 0 &&
   (type === "cashin" ||
    type === "cashout" ||
-   type === "loading" ||
-   type === "billspayment")
 ) {
   if (feeDestination === "cash") {
     cashChange += fee;
@@ -482,13 +482,14 @@ if (
   }
 }
 
-
-// ----- APPLY REVERSAL -----
+    // ===== APPLY BALANCE CHANGES (THIS WAS MISSING) =====
 await balancesRef.update({
   cash: firebase.firestore.FieldValue.increment(cashChange),
   gcash: firebase.firestore.FieldValue.increment(gcashChange),
   profit: firebase.firestore.FieldValue.increment(profit)
 });
+
+
 
 
     
@@ -731,8 +732,16 @@ function setKnownBalance() {
 // OWNER ONLY: DELETE TRANSACTION
 // ===============================
 async function deleteTransaction(txId) {
+  if (deletingTx) {
+    alert("⚠️ Delete already in progress.");
+    return;
+  }
+  deletingTx = true;
+
   if (!confirm("⚠️ Delete this transaction? Balances will be reversed.")) return;
 
+
+    try {
   const reason = prompt("Enter DELETE REASON (required):");
   if (!reason || reason.trim().length < 5) {
     alert("❌ Delete reason is required (min 5 chars).");
@@ -853,8 +862,12 @@ function setupTransactionsListener(){
       
   let deleteBtn = "";
   if (currentUserRole === "owner" && tx.type !== "rebalance") {
-    deleteBtn = `<button onclick="deleteTransaction('${doc.id}')">🗑 Delete</button>`;
-  }
+    deleteBtn = `
+    <button
+          onclick="this.disabled=true; deleteTransaction('${doc.id}')"
+>
+  🗑 Delete
+</button>`;
       
       const tr = document.createElement("tr");
       tr.innerHTML = `
