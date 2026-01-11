@@ -115,6 +115,7 @@
           <th>Method</th>
           <th>GCash Fee</th>  <!-- NEW -->
           <th>Fee</th>
+          <th>Fee →</th>
           <th>Profit</th>
           <th>Notes</th>
           <th>By</th>
@@ -202,7 +203,6 @@ async function login(email,password){
     document.getElementById("appSection").style.display="block";
     applyRoleUI(currentUserRole);
     setupDashboardRealtime();
-    setupTransactionsListener();
     initializeTabs();
   }catch(e){ alert(e.message); }
 }
@@ -308,9 +308,20 @@ function calculateFee(amount){
 
   // ----- SHOW / HIDE BILL PAYMENT FEE -----
 document.getElementById("type").addEventListener("change", () => {
-  const isBills = document.getElementById("type").value === "billspayment";
+  const type = document.getElementById("type").value;
+  const isBills = type === "billspayment";
+
   document.getElementById("billsFeeLabel").style.display = isBills ? "block" : "none";
+
+  // 🔒 FORCE PAYMENT METHOD TO CASH FOR BILLS
+  if (isBills) {
+    document.getElementById("method").value = "cash";
+    document.getElementById("method").disabled = true;
+  } else {
+    document.getElementById("method").disabled = false;
+  }
 });
+
 
   
 // ----- TRANSACTION FORM -----
@@ -322,7 +333,14 @@ document.getElementById("transactionForm").addEventListener("submit", async e =>
     const method = document.getElementById("method").value;
     const notes = document.getElementById("notes").value || "";
     const amount = parseFloat(document.getElementById("amount").value);
+  
+    // 🚫 FORCE BILLS PAYMENT = CASH ONLY
+    if (type === "billspayment" && method !== "cash") {
+      alert("Bills payment must be CASH only.");
+      return;
+    }
 
+    
     let fee = 0, profit = 0;
     let cashChange = 0, gcashChange = 0;
     let gcashFee = 0; // <-- MOVE TO OUTER SCOPE
@@ -340,10 +358,10 @@ document.getElementById("transactionForm").addEventListener("submit", async e =>
       // CASH OUT
     } else if (type === "cashout") {
       fee = calculateFee(amount);
-      profit = fee;
+       profit = fee;
 
       // you give CASH
-        cashChange = -amount + fee; // fee added to cash
+        cashChange = -amount; // fee added to cash
       // customer sends GCASH
         gcashChange = amount;
         gcashFee = 0; //explicitly
@@ -425,21 +443,22 @@ if (newGcash < 0) {
   return;
 }
 
-    // ----- APPLY REVERSAL -----
-    await balancesRef.update({
-      cash: firebase.firestore.FieldValue.increment(cashChange),
-      gcash: firebase.firestore.FieldValue.increment(gcashChange),
-      profit: firebase.firestore.FieldValue.increment(profit)
-    });
-
     // ===== APPLY FEE DESTINATION =====
-    if (fee > 0) {
-    if (feeDestination === "cash") {
-        cashChange += fee;
-    } else if (feeDestination === "gcash") {
-        gcashChange += fee;
-      }
-    }
+if (fee > 0) {
+  if (feeDestination === "cash") {
+    cashChange += fee;
+  } else if (feeDestination === "gcash") {
+    gcashChange += fee;
+  }
+}
+
+// ----- APPLY REVERSAL -----
+await balancesRef.update({
+  cash: firebase.firestore.FieldValue.increment(cashChange),
+  gcash: firebase.firestore.FieldValue.increment(gcashChange),
+  profit: firebase.firestore.FieldValue.increment(profit)
+});
+
 
     
     await db.collection("transactions").add({
@@ -519,7 +538,73 @@ async function fixOldCashFees() {
   );
 }
 
-  
+
+
+  async function runDailyAudit() {
+  if (currentUserRole !== "owner") return;
+
+  const balSnap = await balancesRef.get();
+  if (!balSnap.exists) return;
+
+  const balances = balSnap.data();
+  let expectedCash = 0;
+  let expectedGcash = 0;
+
+  const snap = await db.collection("transactions").get();
+
+  snap.forEach(doc => {
+    const tx = doc.data();
+
+    if (tx.type === "cashin") {
+      expectedCash += tx.amount;
+      expectedGcash -= tx.amount;
+    }
+
+    if (tx.type === "cashout") {
+      expectedCash -= tx.amount;
+      expectedGcash += tx.amount;
+    }
+
+    if (tx.type === "loading") {
+  if (tx.method === "cash") {
+    expectedCash += tx.amount + tx.fee;
+    expectedGcash -= tx.amount + (tx.gcashFee || 0);
+  } else {
+    expectedGcash -= tx.amount + (tx.gcashFee || 0) - tx.fee;
+  }
+}
+
+if (tx.type === "billspayment") {
+  expectedCash += tx.amount;
+  expectedGcash -= tx.amount + tx.fee;
+}
+
+
+    if (tx.fee > 0 && (tx.type === "cashin" || tx.type === "cashout")) {
+      if ((tx.feeDestination || "cash") === "cash") {
+        expectedCash += tx.fee;
+      } else {
+        expectedGcash += tx.fee;
+      }
+    }
+  });
+
+  if (
+    expectedCash !== balances.cash ||
+    expectedGcash !== balances.gcash
+  ) {
+    alert(
+      "⚠️ DAILY AUDIT WARNING\n\n" +
+      `Expected Cash: ₱${expectedCash}\n` +
+      `Actual Cash: ₱${balances.cash}\n\n` +
+      `Expected GCash: ₱${expectedGcash}\n` +
+      `Actual GCash: ₱${balances.gcash}`
+    );
+  } else {
+    console.log("✅ Daily audit passed");
+  }
+}
+
   
   
   
@@ -554,7 +639,7 @@ async function deleteTransaction(txId) {
 
   switch (tx.type) {
     case "cashin":
-      cashReverse = -(tx.amount - tx.fee);
+      cashReverse = -tx.amount;
       gcashReverse = tx.amount;
       profitReverse = -tx.profit;
       break;
@@ -598,6 +683,15 @@ async function deleteTransaction(txId) {
     alert("❌ Cannot delete: balance would go negative.");
     return;
   }
+
+      // ===== REVERSE FEE BASED ON DESTINATION =====
+if (tx.fee > 0) {
+  if ((tx.feeDestination || "cash") === "cash") {
+    cashReverse -= tx.fee;
+  } else {
+    gcashReverse -= tx.fee;
+  }
+}
 
   await balancesRef.update({
     cash: firebase.firestore.FieldValue.increment(cashReverse),
@@ -651,10 +745,11 @@ function setupTransactionsListener(){
         <td>${tx.method}</td>
         <td>₱${gcashFee}</td>  <!-- GCash Fee column -->
         <td>₱${tx.fee}</td>
+        <td>${tx.feeDestination || "cash"}</td>
         <td>₱${tx.profit}</td>
         <td>${tx.notes}</td>
         <td>${tx.role}</td>
-        <td>${deleteBtn}</td>
+        ${currentUserRole === "owner" ? `<td>${deleteBtn}</td>` : ``}
       `;
       tbody.appendChild(tr);
     });
@@ -662,7 +757,7 @@ function setupTransactionsListener(){
 }
 
 // call this after login
-setupTransactionsListener();
+
 
 
 // ----- REBALANCE -----
@@ -713,19 +808,32 @@ function logout(){
 
 // ----- AUTH STATE -----
 firebase.auth().onAuthStateChanged(user=>{
-  if(user){
-    db.collection("users").doc(user.uid).get().then(doc=>{
-      if(!doc.exists){ alert("No role!"); auth.signOut(); return; }
-      currentUserRole = doc.data().role;
-      document.getElementById("loginSection").style.display="none";
-      document.getElementById("appSection").style.display="block";
-      applyRoleUI(currentUserRole);
-      setupDashboardRealtime();
-      setupTransactionsListener();
-      initializeTabs();
-    });
-  }
+  if(!user) return;
+
+  db.collection("users").doc(user.uid).get().then(doc=>{
+    if(!doc.exists){
+      alert("No role!");
+      auth.signOut();
+      return;
+    }
+
+    currentUserRole = doc.data().role;
+
+    document.getElementById("loginSection").style.display="none";
+    document.getElementById("appSection").style.display="block";
+
+    applyRoleUI(currentUserRole);
+    setupDashboardRealtime();
+    setupTransactionsListener();
+    initializeTabs();
+
+    // ✅ RUN AUDIT AFTER ROLE IS CONFIRMED
+    if (currentUserRole === "owner") {
+      runDailyAudit();
+    }
+  });
 });
+
 </script>
 </body>
 </html>
