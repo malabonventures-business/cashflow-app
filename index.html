@@ -474,13 +474,13 @@ if (
   fee > 0 &&
   (type === "cashin" ||
    type === "cashout" ||
-) {
+)
   if (feeDestination === "cash") {
     cashChange += fee;
   } else if (feeDestination === "gcash") {
     gcashChange += fee;
   }
-}
+
 
     // ===== APPLY BALANCE CHANGES (THIS WAS MISSING) =====
 await balancesRef.update({
