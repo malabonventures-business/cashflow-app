@@ -509,25 +509,33 @@ if (fee > 0 && (type === "cashin" || type === "cashout")) {
 // 👉 STAFF: TRANSACTION ONLY (NO BALANCE TOUCH)
 if (currentUserRole === "staff") {
 
-  await db.collection("transactions").add({
-    date: new Date().toISOString(),
-    type,
-    amount,
-    method,
-    gcashFee,
-    fee,
-    profit,
-    feeDestination,
-    feeAppliedToCash: feeDestination === "cash",
-    notes,
-    role: currentUserRole
-  });
+ // ✅ APPLY BALANCE CHANGES (ALL ROLES)
+await balancesRef.update({
+  cash: firebase.firestore.FieldValue.increment(cashChange),
+  gcash: firebase.firestore.FieldValue.increment(gcashChange),
+  profit: firebase.firestore.FieldValue.increment(profit)
+});
 
-  document.getElementById("transactionForm").reset();
-  alert("✅ Transaction saved");
-  return;
-}
+// ✅ SAVE TRANSACTION LOG
+await db.collection("transactions").add({
+  date: new Date().toISOString(),
+  type,
+  amount,
+  method,
+  gcashFee,
+  fee,
+  profit,
+  feeDestination,
+  feeAppliedToCash: feeDestination === "cash",
+  notes,
+  role: currentUserRole
+});
 
+document.getElementById("transactionForm").reset();
+alert("✅ Transaction applied");
+
+
+  
 // 👉 OWNER: TRANSACTION + BALANCE UPDATE
 if (currentUserRole === "owner") {
 
