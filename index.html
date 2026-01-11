@@ -469,17 +469,15 @@ if (newGcash < 0) {
   return;
 }
 
-   // ===== APPLY FEE DESTINATION (SAFE) =====
-if (
-  fee > 0 &&
-  (type === "cashin" ||
-   type === "cashout" ||
-)
+   // ===== APPLY FEE DESTINATION (CASHIN / CASHOUT ONLY) =====
+if (fee > 0 && (type === "cashin" || type === "cashout")) {
   if (feeDestination === "cash") {
     cashChange += fee;
   } else if (feeDestination === "gcash") {
     gcashChange += fee;
   }
+}
+
 
 
     // ===== APPLY BALANCE CHANGES (THIS WAS MISSING) =====
