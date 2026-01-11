@@ -644,8 +644,6 @@ async function fixOldCashFees() {
 
   
           // ----------AUDIT----------
-      let expectedCash = balances.knownCash ?? 0;
-      let expectedGcash = balances.knownGcash ?? 0;
   async function runDailyAudit() {
   if (currentUserRole !== "owner") return;
 
@@ -654,10 +652,26 @@ async function fixOldCashFees() {
 
   const balances = balSnap.data();
 
-  let expectedCash = balances.openingCash ?? 0;
-  let expectedGcash = balances.openingGcash ?? 0;
+  const anchorSnap = await db
+    .collection("balance_anchor")
+    .doc("current")
+    .get();
 
-  const snap = await db.collection("transactions").get();
+    if (!anchorSnap.exists) {
+      alert("❌ No balance anchor set.");
+      return;
+    }
+
+    let expectedCash = anchorSnap.data().cash;
+    let expectedGcash = anchorSnap.data().gcash;
+    const anchorTime = anchorSnap.data().timestamp;
+    
+  const snap = await db
+  .collection("transactions")
+  .where("timestamp", ">", anchorTime)
+  .orderBy("timestamp")
+  .get();
+
 
   snap.forEach(doc => {
     const tx = doc.data();
