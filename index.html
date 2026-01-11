@@ -234,7 +234,7 @@ async function login(email,password){
 }
 
 // ----- ROLE UI -----
-function applyRoleUI(role){
+function applyRoleUI(role) {
   const cashInOut = document.getElementById("cashflow");
   const rebalance = document.getElementById("rebalance");
   const profitSection = document.getElementById("profitSection");
@@ -242,7 +242,7 @@ function applyRoleUI(role){
   const clearBtn = document.getElementById("clearResetBtn");
   const actionHeader = document.getElementById("actionHeader");
 
-  // HIDE ALL FIRST
+  // 🔒 HIDE ALL FIRST
   cashInOut.style.display = "none";
   rebalance.style.display = "none";
   profitSection.style.display = "none";
@@ -250,13 +250,13 @@ function applyRoleUI(role){
   clearBtn.style.display = "none";
   if (actionHeader) actionHeader.style.display = "none";
 
-  // STAFF
+  // 👤 STAFF
   if (role === "staff") {
     cashInOut.style.display = "block";
-    profitSection.style.display = "none"; // staff cannot see profit
-}
+    profitSection.style.display = "none";
+  }
 
-  // OWNER
+  // 👑 OWNER
   if (role === "owner") {
     cashInOut.style.display = "block";
     rebalance.style.display = "block";
@@ -264,11 +264,12 @@ function applyRoleUI(role){
     ownerTab.style.display = "inline-block";
     clearBtn.style.display = "inline-block";
 
-    // ✅ SHOW DELETE COLUMN
-    if (actionHeader) actionHeader.style.display = "table-cell";
+    if (actionHeader) {
+      actionHeader.style.display = "table-cell";
+    }
   }
 }
-  
+
 
 // ----- LOGIN FORM -----
 document.getElementById("loginForm").addEventListener("submit", e=>{
