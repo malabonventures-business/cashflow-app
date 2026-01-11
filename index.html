@@ -94,6 +94,13 @@
             <option value="gcash">GCash</option>
           </select>
         </label><br><br>
+        <label>
+          Fee goes to:
+            <select id="feeDestination">
+            <option value="cash" selected>Cash (default)</option>
+            <option value="gcash">GCash</option>
+          </select>
+        </label><br><br>
         <label>Notes:<input type="text" id="notes" placeholder="Optional"></label><br><br>
         <button type="submit">Add Transaction</button>
       </form>
@@ -318,7 +325,8 @@ document.getElementById("transactionForm").addEventListener("submit", async e =>
 
     let fee = 0, profit = 0;
     let cashChange = 0, gcashChange = 0;
-       let gcashFee = 0; // <-- MOVE TO OUTER SCOPE
+    let gcashFee = 0; // <-- MOVE TO OUTER SCOPE
+    let feeDestination = document.getElementById("feeDestination")?.value || "cash";
 
     // CASH IN
     if (type === "cashin") {
@@ -326,7 +334,7 @@ document.getElementById("transactionForm").addEventListener("submit", async e =>
       profit = fee;
       
       gcashChange = -amount;
-      cashChange = amount + fee;
+      cashChange = amount;
       gcashFee = 0; // explicitly
 
       // CASH OUT
@@ -424,6 +432,16 @@ if (newGcash < 0) {
       profit: firebase.firestore.FieldValue.increment(profit)
     });
 
+    // ===== APPLY FEE DESTINATION =====
+    if (fee > 0) {
+    if (feeDestination === "cash") {
+        cashChange += fee;
+    } else if (feeDestination === "gcash") {
+        gcashChange += fee;
+      }
+    }
+
+    
     await db.collection("transactions").add({
       date: new Date().toISOString(),
       type,
@@ -432,6 +450,8 @@ if (newGcash < 0) {
       gcashFee: gcashFee, // NEW
       fee,
       profit,
+      feeDestination,
+      feeAppliedToCash: feeDestination === "cash",
       notes,
       role: currentUserRole
     });
@@ -447,6 +467,61 @@ if (newGcash < 0) {
 });
 
 
+  
+
+  
+    // ===============================
+// OPTION C v2: FIX OLD FEES (SMART)
+// ===============================
+async function fixOldCashFees() {
+  if (currentUserRole !== "owner") {
+    alert("❌ Owner only.");
+    return;
+  }
+
+  const ok = confirm(
+    "This will add MISSING fees to CASH for old cashin/cashout.\n\nRUN ONLY ONCE.\nContinue?"
+  );
+  if (!ok) return;
+
+  const confirm2 = prompt("Type FIX to proceed:");
+  if (confirm2 !== "FIX") return;
+
+  const snap = await db.collection("transactions").get();
+
+  let totalCashAdded = 0;
+  let fixed = 0;
+
+  for (const doc of snap.docs) {
+    const tx = doc.data();
+
+    if (tx.type !== "cashin" && tx.type !== "cashout") continue;
+    if (!tx.fee || tx.fee <= 0) continue;
+    if (tx.feeAppliedToCash === true) continue;
+
+    await balancesRef.update({
+      cash: firebase.firestore.FieldValue.increment(tx.fee)
+    });
+
+    await doc.ref.update({
+      feeAppliedToCash: true,
+      feeDestination: "cash"
+    });
+
+    totalCashAdded += tx.fee;
+    fixed++;
+  }
+
+  alert(
+    `✅ FIX COMPLETE\n\n` +
+    `Transactions fixed: ${fixed}\n` +
+    `Cash added: ₱${totalCashAdded}`
+  );
+}
+
+  
+  
+  
   
   // ===============================
 // OWNER ONLY: DELETE TRANSACTION
