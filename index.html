@@ -910,52 +910,35 @@ async function deleteTransaction(txId) {
 function setupTransactionsListener(){
   const tbody = document.querySelector("#transactionTable tbody");
 
-  let query = db.collection("transactions").orderBy("date","desc");
+  db.collection("transactions")
+    .where("date", "!=", null)
+    .orderBy("date", "desc")
+    .onSnapshot(snap => {
+      tbody.innerHTML = "";
 
-  query.onSnapshot(snap=>{
-    tbody.innerHTML = "";
+      snap.forEach(doc => {
+        const tx = doc.data();
 
-    snap.forEach(doc => {
-      const tx = doc.data();
-      const gcashFee = tx.gcashFee || 0;
-
-      const tr = document.createElement("tr");
-
-      tr.innerHTML = `
-        <td>${new Date(tx.date).toLocaleString()}</td>
-        <td>${tx.type}</td>
-        <td>₱${tx.amount}</td>
-        <td>${tx.method}</td>
-        <td>₱${gcashFee}</td>
-        <td>₱${tx.fee || 0}</td>
-        <td>${tx.feeDestination || "cash"}</td>
-
-        ${
-          currentUserRole === "owner"
-            ? `<td>₱${tx.profit || 0}</td>`
-            : `<td>—</td>`
-        }
-
-        <td>${tx.notes || ""}</td>
-        <td>${tx.role || ""}</td>
-
-        ${
-          currentUserRole === "owner"
-            ? `<td>
-                <button onclick="this.disabled=true; deleteTransaction('${doc.id}')">
-                  🗑 Delete
-                </button>
-              </td>`
-            : ``
-        }
-      `;
-
-      tbody.appendChild(tr);
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${new Date(tx.date).toLocaleString()}</td>
+          <td>${tx.type}</td>
+          <td>₱${tx.amount}</td>
+          <td>${tx.method}</td>
+          <td>₱${tx.gcashFee || 0}</td>
+          <td>₱${tx.fee || 0}</td>
+          <td>${tx.feeDestination || "cash"}</td>
+          <td>${currentUserRole === "owner" ? "₱"+tx.profit : "-"}</td>
+          <td>${tx.notes || ""}</td>
+          <td>${tx.role}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }, err => {
+      console.error("Transaction listener error:", err.message);
     });
-  }, err => {
-    console.error("Transaction listener error:", err);
-  });
 }
+
 
 // call this after login
 
