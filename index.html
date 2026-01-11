@@ -228,7 +228,6 @@ async function login(email,password){
     document.getElementById("loginSection").style.display="none";
     document.getElementById("appSection").style.display="block";
     applyRoleUI(currentUserRole);
-    setupDashboardRealtime();
     initializeTabs();
   }catch(e){ alert(e.message); }
 }
@@ -298,51 +297,67 @@ function initializeTabs(){
 }
 
 // ----- DASHBOARD REALTIME -----
-function setupDashboardRealtime(){
+function setupDashboardRealtime() {
 
-  // ✅ BOTH STAFF + OWNER CAN SEE BALANCES
-  balancesRef.onSnapshot(snap=>{
-    if(!snap.exists) return;
+  // ===============================
+  // BALANCES (STAFF + OWNER)
+  // ===============================
+  balancesRef.onSnapshot(snap => {
+    if (!snap.exists) return;
     const data = snap.data();
 
-    document.getElementById("dashCash").innerText = `₱${data.cash||0}`;
-    document.getElementById("dashGcash").innerText = `₱${data.gcash||0}`;
+    document.getElementById("dashCash").innerText =
+      `₱${data.cash || 0}`;
+
+    document.getElementById("dashGcash").innerText =
+      `₱${data.gcash || 0}`;
+
     document.getElementById("dashTotal").innerText =
-      `₱${(data.cash||0)+(data.gcash||0)}`;
+      `₱${(data.cash || 0) + (data.gcash || 0)}`;
 
     // 🔒 OWNER ONLY
     if (currentUserRole === "owner") {
-      document.getElementById("dashProfit").innerText = `₱${data.profit||0}`;
+      document.getElementById("dashProfit").innerText =
+        `₱${data.profit || 0}`;
     }
+
+  }, err => {
+    console.error("Dashboard balance listener error:", err.message);
   });
 
-  // 🔒 🔒 🔒 PROFIT TOTALS = OWNER ONLY 🔒 🔒 🔒
+  // ===============================
+  // PROFIT TOTALS (OWNER ONLY)
+  // ===============================
   if (currentUserRole !== "owner") return;
 
-  db.collection("transactions").onSnapshot(snap=>{
-    let daily=0,weekly=0,monthly=0,yearly=0;
-    const now=new Date();
-    const sevenDaysAgo=new Date(); sevenDaysAgo.setDate(now.getDate()-7);
+  db.collection("transactions").onSnapshot(snap => {
+    let daily = 0, weekly = 0, monthly = 0, yearly = 0;
+    const now = new Date();
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(now.getDate() - 7);
 
-    snap.forEach(doc=>{
-      const tx=doc.data();
-      if(tx.type==="rebalance") return;
+    snap.forEach(doc => {
+      const tx = doc.data();
+      if (tx.type === "rebalance") return;
 
-      const txDate=new Date(tx.date);
+      const txDate = new Date(tx.date);
+      const profit = tx.profit || 0;
 
-      if(txDate.toDateString()===now.toDateString()) daily+=tx.profit||0;
-      if(txDate>=sevenDaysAgo) weekly+=tx.profit||0;
-      if(txDate.getMonth()===now.getMonth()) monthly+=tx.profit||0;
-      if(txDate.getFullYear()===now.getFullYear()) yearly+=tx.profit||0;
+      if (txDate.toDateString() === now.toDateString()) daily += profit;
+      if (txDate >= sevenDaysAgo) weekly += profit;
+      if (txDate.getMonth() === now.getMonth()) monthly += profit;
+      if (txDate.getFullYear() === now.getFullYear()) yearly += profit;
     });
 
-    document.getElementById("dailyTotal").innerText=`₱${daily}`;
-    document.getElementById("weeklyTotal").innerText=`₱${weekly}`;
-    document.getElementById("monthlyTotal").innerText=`₱${monthly}`;
-    document.getElementById("yearlyTotal").innerText=`₱${yearly}`;
+    document.getElementById("dailyTotal").innerText = `₱${daily}`;
+    document.getElementById("weeklyTotal").innerText = `₱${weekly}`;
+    document.getElementById("monthlyTotal").innerText = `₱${monthly}`;
+    document.getElementById("yearlyTotal").innerText = `₱${yearly}`;
+
+  }, err => {
+    console.error("Dashboard profit listener error:", err.message);
   });
 }
-
 
 
 // ----- FEE CALC -----
@@ -506,7 +521,7 @@ if (fee > 0 && (type === "cashin" || type === "cashout")) {
 // ROLE-BASED SAVE (CRITICAL FIX)
 // ===============================
 
-// 👉 STAFF: TRANSACTION ONLY (NO BALANCE TOUCH)
+// 👉 STAFF: TRANSACTION + BALANCE UPDATE (NO DELETE / NO REBALANCE)
 if (currentUserRole === "staff") {
 
  // ✅ APPLY BALANCE CHANGES (ALL ROLES)
@@ -608,10 +623,8 @@ async function fixOldCashFees() {
     if (tx.feeAppliedToCash === true) continue;
 
     await balancesRef.update({
-      cash: firebase.firestore.FieldValue.increment(tx.fee),
-      openingCash,
-      openingGcash
-    });
+      cash: firebase.firestore.FieldValue.increment(tx.fee)
+});
 
     await doc.ref.update({
       feeAppliedToCash: true,
