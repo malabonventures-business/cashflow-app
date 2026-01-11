@@ -334,14 +334,13 @@ document.getElementById("transactionForm").addEventListener("submit", async e =>
       fee = calculateFee(amount);
       profit = fee;
 
-      if (method === "cash") {
-        cashChange = -amount + fee;
+      // you give CASH
+        cashChange = -amount + fee; // fee added to cash
+      // customer sends GCASH
         gcashChange = amount;
-      } else {
-        gcashChange = -amount;
-        cashChange = amount;
-      }
-      gcashFee = 0; // explicitly
+        gcashFee = 0; //explicitly
+    }
+
     
     
     } else if (type === "loading") {
