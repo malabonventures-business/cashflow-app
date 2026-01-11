@@ -264,6 +264,8 @@ function applyRoleUI(role) {
     ownerTab.style.display = "inline-block";
     clearBtn.style.display = "inline-block";
 
+     // ✅ FIX: SHOW ACTION HEADER
+    const actionHeader = document.getElementById("actionHeader");
     if (actionHeader) {
       actionHeader.style.display = "table-cell";
     }
