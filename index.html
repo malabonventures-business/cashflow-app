@@ -294,15 +294,25 @@ function initializeTabs(){
 }
 
 // ----- DASHBOARD REALTIME -----
-function setupDashboardRealtime(){
-  balancesRef.onSnapshot(snap=>{
-    if(!snap.exists) return;
+// ----- DASHBOARD REALTIME (OWNER ONLY) -----
+function setupDashboardRealtime() {
+
+  if (currentUserRole !== "owner") return;
+
+  balancesRef.onSnapshot(snap => {
+    if (!snap.exists) return;
+
     const data = snap.data();
-    document.getElementById("dashCash").innerText = `₱${data.cash||0}`;
-    document.getElementById("dashGcash").innerText = `₱${data.gcash||0}`;
-    document.getElementById("dashProfit").innerText = `₱${data.profit||0}`;
-    document.getElementById("dashTotal").innerText = `₱${(data.cash||0)+(data.gcash||0)}`;
+
+    document.getElementById("dashCash").innerText   = `₱${data.cash || 0}`;
+    document.getElementById("dashGcash").innerText = `₱${data.gcash || 0}`;
+    document.getElementById("dashProfit").innerText= `₱${data.profit || 0}`;
+    document.getElementById("dashTotal").innerText =
+      `₱${(data.cash || 0) + (data.gcash || 0)}`;
   });
+
+}
+
 
   db.collection("transactions").onSnapshot(snap=>{
     let daily=0,weekly=0,monthly=0,yearly=0;
@@ -1000,14 +1010,16 @@ firebase.auth().onAuthStateChanged(async user => {
     applyRoleUI(currentUserRole);
 
     // ✅ START LISTENERS ONLY AFTER ROLE IS CONFIRMED
-    setupDashboardRealtime();
-    setupTransactionsListener();
-    initializeTabs();
+    // ALWAYS allowed
+setupTransactionsListener();
+initializeTabs();
 
-    // ✅ OWNER-ONLY AUDIT
-    if (currentUserRole === "owner") {
-      runDailyAudit();
-    }
+// OWNER ONLY FEATURES
+if (currentUserRole === "owner") {
+  setupDashboardRealtime(); // listens to balances
+  runDailyAudit();         // audit uses balances + logs
+}
+
 
   } catch (err) {
     console.error("Auth init error:", err);
