@@ -82,6 +82,7 @@
           </select>
         </label><br><br>
         <label>Amount:<input type="number" id="amount" required min="1" placeholder="₱0"></label><br><br>
+        <input type="number" id="billsServiceFee" placeholder="Your Service Fee">
         
         <label id="billsFeeLabel" style="display:none;">
   GCash Fee:
@@ -491,31 +492,29 @@ document.getElementById("transactionForm").addEventListener("submit", async e =>
 
 
 
-   } else if (type === "billspayment") {
+} else if (type === "billspayment") {
 
-  const gcashFee =
-    parseFloat(document.getElementById("billsGcashFee").value) || 0;
+  const gcashFeeInput =
+    parseFloat(document.getElementById("billsGcashFee")?.value) || 0;
 
   const serviceFee =
-    parseFloat(document.getElementById("billsServiceFee").value) || 0;
+    parseFloat(document.getElementById("billsServiceFee")?.value) || 0;
 
-  // PROFIT = what you really earn
-  profit = serviceFee - gcashFee;
+  // PROFIT = imong tinood nga kita
+  profit = serviceFee - gcashFeeInput;
 
-  // displayed fee = YOUR fee
+  // displayed fee = imong service fee
   fee = serviceFee;
 
-  // BASE TRANSACTION
-  // customer pays CASH (bill + your fee)
+  // CUSTOMER PAYS CASH: bill + imong service fee
   cashChange = amount + serviceFee;
 
-  // you pay via GCASH (bill + gcash fee)
-  gcashChange = -(amount + gcashFee);
+  // IKAW MO PAY SA GCASH: bill + gcash fee
+  gcashChange = -(amount + gcashFeeInput);
 
-  // store actual gcash fee for audit
-  gcashFee = gcashFee;
+  // for table / audit
+  gcashFee = gcashFeeInput;
 }
-
 
     
 
