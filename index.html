@@ -898,22 +898,40 @@ async function deleteTransaction(txId) {
     let profitReverse = 0;
 
     switch (tx.type) {
-      case "cashin":
-        cashReverse = -tx.amount;
-        gcashReverse = tx.amount;
-        profitReverse = -tx.profit;
-        break;
 
-      case "cashout":
-        cashReverse = tx.amount;
-        gcashReverse = -tx.amount;
-        profitReverse = -tx.profit;
-        break;
+  case "cashin":
+    cashReverse = -tx.amount;
+    gcashReverse = tx.amount;
+    profitReverse = -tx.profit;
+    break;
 
-      default:
-        alert("Cannot delete this transaction.");
-        return;
+  case "cashout":
+    cashReverse = tx.amount;
+    gcashReverse = -tx.amount;
+    profitReverse = -tx.profit;
+    break;
+
+  case "billspayment":
+    // reverse base
+    cashReverse = -tx.amount;
+    gcashReverse = tx.amount;
+    profitReverse = -tx.profit;
+
+    // reverse fee destination
+    if (tx.fee > 0) {
+      if ((tx.feeDestination || "cash") === "cash") {
+        cashReverse -= tx.fee;
+      } else {
+        gcashReverse -= tx.fee;
+      }
     }
+    break;
+
+  default:
+    alert("Cannot delete this transaction type.");
+    return;
+}
+
 
     const balSnap = await balancesRef.get();
     const b = balSnap.data();
