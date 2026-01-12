@@ -575,6 +575,8 @@ await db.collection("transactions").add({
   method,
   gcashFee,
   fee,
+  cashChange,
+  gcashChange,
   profit,
   feeDestination,
   feeAppliedToCash: feeDestination === "cash",
@@ -604,6 +606,8 @@ if (currentUserRole === "owner") {
     method,
     gcashFee,
     fee,
+    cashChange,
+    gcashChange,
     profit,
     feeDestination,
     feeAppliedToCash: feeDestination === "cash",
@@ -679,7 +683,8 @@ async function fixOldCashFees() {
 }
 
 
-      async function computeOpeningBalance() {
+// ----- computeOpeningBalance (DELTA-BASED ONLY) -----
+async function computeOpeningBalance() {
   if (currentUserRole !== "owner") return;
 
   const balSnap = await balancesRef.get();
@@ -692,39 +697,8 @@ async function fixOldCashFees() {
 
   snap.forEach(doc => {
     const tx = doc.data();
-
-    if (tx.type === "cashin") {
-      deltaCash += tx.amount;
-      deltaGcash -= tx.amount;
-    }
-
-    if (tx.type === "cashout") {
-      deltaCash -= tx.amount;
-      deltaGcash += tx.amount;
-    }
-
-    if (tx.type === "loading") {
-      if (tx.method === "cash") {
-        deltaCash += tx.amount + tx.fee;
-        deltaGcash -= tx.amount + (tx.gcashFee || 0);
-      } else {
-        deltaGcash -= tx.amount + (tx.gcashFee || 0) - tx.fee;
-      }
-    }
-
-    if (tx.type === "billspayment") {
-      deltaCash += tx.amount + (tx.fee || 0);
-      deltaGcash -= tx.amount + (tx.gcashFee || 0);
-    }
-
-
-    if (tx.fee > 0 && (tx.type === "cashin" || tx.type === "cashout")) {
-      if ((tx.feeDestination || "cash") === "cash") {
-        deltaCash += tx.fee;
-      } else {
-        deltaGcash += tx.fee;
-      }
-    }
+    deltaCash += tx.cashChange || 0;
+    deltaGcash += tx.gcashChange || 0;
   });
 
   const openingCash = balances.cash - deltaCash;
@@ -737,8 +711,6 @@ async function fixOldCashFees() {
     "Verify physically before saving."
   );
 }
-
-
 
 
 
@@ -801,10 +773,12 @@ async function fixOldCashFees() {
       }
     }
 
-    if (tx.type === "billspayment") {
-      expectedCash += tx.amount + (tx.fee || 0);
-      expectedGcash -= tx.amount + (tx.gcashFee || 0);
-    }
+    snap.forEach(doc => {
+    const tx = doc.data();
+      expectedCash += tx.cashChange || 0;
+      expectedGcash += tx.gcashChange || 0;
+    });
+
 
 
     if (tx.fee > 0 && (tx.type === "cashin" || tx.type === "cashout")) {
@@ -904,23 +878,20 @@ async function deleteTransaction(txId) {
     switch (tx.type) {
 
   case "cashin":
-    cashReverse = -tx.amount;
-    gcashReverse = tx.amount;
-    profitReverse = -tx.profit;
-    break;
-
   case "cashout":
-    cashReverse = tx.amount;
-    gcashReverse = -tx.amount;
+  case "loading":
+    cashReverse = -tx.cashChange;
+    gcashReverse = -tx.gcashChange;
     profitReverse = -tx.profit;
-    break;
+   break;
+
 
   case "billspayment":
-  // reverse EXACTLY what was applied
-  cashReverse = -(tx.amount + (tx.fee || 0));
-  gcashReverse = tx.amount + (tx.gcashFee || 0);
+  cashReverse = -tx.cashChange;
+  gcashReverse = -tx.gcashChange;
   profitReverse = -tx.profit;
   break;
+
 
 
   default:
@@ -1028,20 +999,56 @@ function setupTransactionsListener(){
 // call this after login
 
 
-
-// ----- REBALANCE -----
+    // ----- REBALANCE -----
 document.getElementById("rebalanceForm").addEventListener("submit", async e=>{
   e.preventDefault();
-  const from=document.getElementById("rebalanceFrom").value;
-  const to=document.getElementById("rebalanceTo").value;
-  const amount=parseFloat(document.getElementById("rebalanceAmount").value);
-  const notes=document.getElementById("rebalanceNotes").value||"";
-  if(from===to){ alert("Cannot transfer to same account!"); return; }
-  if(from==="cash"&&to==="gcash") await balancesRef.update({cash:firebase.firestore.FieldValue.increment(-amount),gcash:firebase.firestore.FieldValue.increment(amount)});
-  if(from==="gcash"&&to==="cash") await balancesRef.update({gcash:firebase.firestore.FieldValue.increment(-amount),cash:firebase.firestore.FieldValue.increment(amount)});
-  await db.collection("transactions").add({date:new Date().toISOString(),type:"rebalance",amount,method:`${from}→${to}`,fee:0,profit:0,notes,role:currentUserRole});
+
+  const from = document.getElementById("rebalanceFrom").value;
+  const to = document.getElementById("rebalanceTo").value;
+  const amount = parseFloat(document.getElementById("rebalanceAmount").value);
+  const notes = document.getElementById("rebalanceNotes").value || "";
+
+  if (from === to) {
+    alert("Cannot transfer to same account!");
+    return;
+  }
+
+  const cashChange  = from === "cash"  ? -amount : amount;
+  const gcashChange = from === "gcash" ? -amount : amount;
+
+  // safety check
+  const balSnap = await balancesRef.get();
+  const b = balSnap.data();
+
+  if (b.cash + cashChange < 0 || b.gcash + gcashChange < 0) {
+    alert("❌ Insufficient balance.");
+    return;
+  }
+
+  // apply balances
+  await balancesRef.update({
+    cash: firebase.firestore.FieldValue.increment(cashChange),
+    gcash: firebase.firestore.FieldValue.increment(gcashChange)
+  });
+
+  // save transaction (DELTA-BASED)
+  await db.collection("transactions").add({
+    date: new Date().toISOString(),
+    type: "rebalance",
+    amount,
+    method: `${from}→${to}`,
+    cashChange,
+    gcashChange,
+    fee: 0,
+    profit: 0,
+    notes,
+    role: currentUserRole
+  });
+
   document.getElementById("rebalanceForm").reset();
+  alert("✅ Rebalance complete");
 });
+
 
 // ----- MANUAL BALANCE -----
 document.getElementById("manualBalanceForm").addEventListener("submit", async e=>{
