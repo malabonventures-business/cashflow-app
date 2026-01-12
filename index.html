@@ -84,9 +84,13 @@
         <label>Amount:<input type="number" id="amount" required min="1" placeholder="₱0"></label><br><br>
         
         <label id="billsFeeLabel" style="display:none;">
-  GCash Bill Fee:
-  <input type="number" id="billsGcashFee" min="0" value="0">
-</label><br><br>
+  GCash Fee:
+  <input type="number" id="billsGcashFee" min="0" value="0"><br><br>
+
+  Your Service Fee:
+  <input type="number" id="billsServiceFee" min="0" value="0">
+</label>
+
 
         <label>Payment Method:
           <select id="method" required>
@@ -488,30 +492,30 @@ document.getElementById("transactionForm").addEventListener("submit", async e =>
 
 
    } else if (type === "billspayment") {
-  const billsFeeInput = document.getElementById("billsGcashFee");
-  const billsFee = billsFeeInput ? parseFloat(billsFeeInput.value) || 0 : 0;
 
-  fee = billsFee;
-  profit = billsFee;
+  const gcashFee =
+    parseFloat(document.getElementById("billsGcashFee").value) || 0;
+
+  const serviceFee =
+    parseFloat(document.getElementById("billsServiceFee").value) || 0;
+
+  // PROFIT = what you really earn
+  profit = serviceFee - gcashFee;
+
+  // displayed fee = YOUR fee
+  fee = serviceFee;
 
   // BASE TRANSACTION
-  // customer pays CASH (amount + fee)
-  cashChange = amount;
-  // you pay bill via GCASH (amount only)
-  gcashChange = -amount;
+  // customer pays CASH (bill + your fee)
+  cashChange = amount + serviceFee;
 
-  // store for table / audit
-  gcashFee = billsFee;
+  // you pay via GCASH (bill + gcash fee)
+  gcashChange = -(amount + gcashFee);
 
-  // APPLY FEE DESTINATION (DEFAULT = CASH)
-  if (fee > 0) {
-    if (feeDestination === "cash") {
-      cashChange += fee;
-    } else if (feeDestination === "gcash") {
-      gcashChange += fee;
-    }
-  }
+  // store actual gcash fee for audit
+  gcashFee = gcashFee;
 }
+
 
     
 
