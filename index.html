@@ -714,9 +714,10 @@ async function fixOldCashFees() {
     }
 
     if (tx.type === "billspayment") {
-      deltaCash += tx.amount;
-      deltaGcash -= tx.amount + tx.fee;
+      deltaCash += tx.amount + (tx.fee || 0);
+      deltaGcash -= tx.amount + (tx.gcashFee || 0);
     }
+
 
     if (tx.fee > 0 && (tx.type === "cashin" || tx.type === "cashout")) {
       if ((tx.feeDestination || "cash") === "cash") {
@@ -802,9 +803,10 @@ async function fixOldCashFees() {
     }
 
     if (tx.type === "billspayment") {
-      expectedCash += tx.amount;
-      expectedGcash -= tx.amount + tx.fee;
+      expectedCash += tx.amount + (tx.fee || 0);
+      expectedGcash -= tx.amount + (tx.gcashFee || 0);
     }
+
 
     if (tx.fee > 0 && (tx.type === "cashin" || tx.type === "cashout")) {
       if ((tx.feeDestination || "cash") === "cash") {
