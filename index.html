@@ -916,20 +916,12 @@ async function deleteTransaction(txId) {
     break;
 
   case "billspayment":
-    // reverse base
-    cashReverse = -tx.amount;
-    gcashReverse = tx.amount;
-    profitReverse = -tx.profit;
+  // reverse EXACTLY what was applied
+  cashReverse = -(tx.amount + (tx.fee || 0));
+  gcashReverse = tx.amount + (tx.gcashFee || 0);
+  profitReverse = -tx.profit;
+  break;
 
-    // reverse fee destination
-    if (tx.fee > 0) {
-      if ((tx.feeDestination || "cash") === "cash") {
-        cashReverse -= tx.fee;
-      } else {
-        gcashReverse -= tx.fee;
-      }
-    }
-    break;
 
   default:
     alert("Cannot delete this transaction type.");
@@ -945,14 +937,6 @@ async function deleteTransaction(txId) {
       return;
     }
 
-    // reverse fee
-    if (tx.fee > 0) {
-      if ((tx.feeDestination || "cash") === "cash") {
-        cashReverse -= tx.fee;
-      } else {
-        gcashReverse -= tx.fee;
-      }
-    }
 
     await balancesRef.update({
       cash: firebase.firestore.FieldValue.increment(cashReverse),
