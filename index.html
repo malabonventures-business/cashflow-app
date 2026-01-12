@@ -721,19 +721,22 @@ async function computeOpeningBalance() {
 
 
   
-          // ----------AUDIT----------
-  async function runDailyAudit() {
-  if (currentUserRole !== "owner") return;
+// ---------- DAILY AUDIT (OWNER ONLY, DELTA-BASED) ----------
+async function runDailyAudit() {
+  if (currentUserRole !== "owner") return; // owner-only
 
-  const balSnap = await balancesRef.get();
-  if (!balSnap.exists) return;
+  try {
+    // get current balances
+    const balSnap = await balancesRef.get();
+    if (!balSnap.exists) return;
 
-  const balances = balSnap.data();
+    const balances = balSnap.data();
 
-  const anchorSnap = await db
-    .collection("balance_anchor")
-    .doc("current")
-    .get();
+    // get balance anchor
+    const anchorSnap = await db
+      .collection("balance_anchor")
+      .doc("current")
+      .get();
 
     if (!anchorSnap.exists) {
       alert("❌ No balance anchor set.");
@@ -743,67 +746,42 @@ async function computeOpeningBalance() {
     let expectedCash = anchorSnap.data().cash;
     let expectedGcash = anchorSnap.data().gcash;
     const anchorTime = anchorSnap.data().timestamp;
-    
-  const snap = await db
-  .collection("transactions")
-  .where("timestamp", ">", anchorTime)
-  .orderBy("timestamp")
-  .get();
 
-
-  snap.forEach(doc => {
-    const tx = doc.data();
-
-    if (tx.type === "cashin") {
-      expectedCash += tx.amount;
-      expectedGcash -= tx.amount;
-    }
-
-    if (tx.type === "cashout") {
-      expectedCash -= tx.amount;
-      expectedGcash += tx.amount;
-    }
-
-    if (tx.type === "loading") {
-      if (tx.method === "cash") {
-        expectedCash += tx.amount + tx.fee;
-        expectedGcash -= tx.amount + (tx.gcashFee || 0);
-      } else {
-        expectedGcash -= tx.amount + (tx.gcashFee || 0) - tx.fee;
-      }
-    }
+    // fetch all transactions after anchor timestamp
+    const snap = await db
+      .collection("transactions")
+      .where("timestamp", ">", anchorTime)
+      .orderBy("timestamp")
+      .get();
 
     snap.forEach(doc => {
-    const tx = doc.data();
+      const tx = doc.data();
+
+      // only delta-based calculations
       expectedCash += tx.cashChange || 0;
       expectedGcash += tx.gcashChange || 0;
     });
 
-
-
-    if (tx.fee > 0 && (tx.type === "cashin" || tx.type === "cashout")) {
-      if ((tx.feeDestination || "cash") === "cash") {
-        expectedCash += tx.fee;
-      } else {
-        expectedGcash += tx.fee;
-      }
+    // compare expected vs actual balances
+    if (expectedCash !== balances.cash || expectedGcash !== balances.gcash) {
+      alert(
+        "⚠️ DAILY AUDIT WARNING\n\n" +
+        `Expected Cash: ₱${expectedCash}\nActual Cash: ₱${balances.cash}\n\n` +
+        `Expected GCash: ₱${expectedGcash}\nActual GCash: ₱${balances.gcash}`
+      );
+    } else {
+      console.log("✅ Daily audit passed. Balances match anchor + transactions.");
     }
-  });
 
-  if (
-    expectedCash !== balances.cash ||
-    expectedGcash !== balances.gcash
-  ) {
-    alert(
-      "⚠️ DAILY AUDIT WARNING\n\n" +
-      `Expected Cash: ₱${expectedCash}\nActual Cash: ₱${balances.cash}\n\n` +
-      `Expected GCash: ₱${expectedGcash}\nActual GCash: ₱${balances.gcash}`
-    );
-  } else {
-    console.log("✅ Daily audit passed");
+  } catch (err) {
+    console.error("Daily audit error:", err);
+    alert("❌ Daily audit failed: " + err.message);
   }
 }
 
+
+
+  
 
   // ===============================
 // OWNER BALANCE ANCHOR (FIRESTORE)
