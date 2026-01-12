@@ -468,16 +468,31 @@ document.getElementById("transactionForm").addEventListener("submit", async e =>
 
 
 
-    } else if (type === "billspayment") {
-      const billsFeeInput = document.getElementById("billsGcashFee");
-      const billsFee = billsFeeInput ? parseFloat(billsFeeInput.value) || 0 : 0;
-      fee = billsFee;
-      profit = billsFee;
+   } else if (type === "billspayment") {
+  const billsFeeInput = document.getElementById("billsGcashFee");
+  const billsFee = billsFeeInput ? parseFloat(billsFeeInput.value) || 0 : 0;
 
-      gcashChange = -(amount + billsFee);
-      cashChange = amount;
-      gcashFee = billsFee; // <-- explicitly store it
+  fee = billsFee;
+  profit = billsFee;
+
+  // BASE TRANSACTION
+  // customer pays CASH (amount + fee)
+  cashChange = amount;
+  // you pay bill via GCASH (amount only)
+  gcashChange = -amount;
+
+  // store for table / audit
+  gcashFee = billsFee;
+
+  // APPLY FEE DESTINATION (DEFAULT = CASH)
+  if (fee > 0) {
+    if (feeDestination === "cash") {
+      cashChange += fee;
+    } else if (feeDestination === "gcash") {
+      gcashChange += fee;
     }
+  }
+}
 
     
 
